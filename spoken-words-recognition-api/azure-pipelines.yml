@@ -64,3 +64,12 @@ steps:
     packageForLinux: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
     RuntimeStack: 'DOTNETCORE|3.1'
     StartupCommand: 'dotnet /home/site/wwwroot/api.dll'
+    ConfigurationSettings: |
+      -AzureStorage:ConnectionString "DefaultEndpointsProtocol=https;AccountName=akrolasikstorage;AccountKey=qCRTDDxPsaGa4IsGMZHqLyB60EyOj4LHfIk3wtj9/2v7nbBKWQjT6WaMaH3AkA2SDpF6K/5TB6gNTzRfs52UkQ==;EndpointSuffix=core.windows.net"
+      -JwtToken:Issuer "https://login.microsoftonline.com/d71f40ab-f3da-4c3c-bb08-746a60338321/v2.0",
+      -JwtToken:Audience "2866b31c-7df3-4252-9239-cc347a42b507",
+      -JwtToken:StsDiscoveryEndpoint "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration",
+      -JwtToken:Claims:0:Type "name",
+      -JwtToken:Claims:0:Value "Aleksander Królasik"
+      -JwtToken:Claims:1:Type "preferred_username",
+      -JwtToken:Claims:1:Value "aleksander.krolasik@gmail.com"
