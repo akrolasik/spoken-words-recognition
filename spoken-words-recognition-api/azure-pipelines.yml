@@ -25,12 +25,12 @@ steps:
     version: 3.1.x
     performMultiLevelLookup: true
 
-- task: DotNetCoreCLI@2
-  displayName: DotNet Test
-  inputs:
-    command: test
-    projects: '**/*tests.csproj'
-    arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
+# - task: DotNetCoreCLI@2
+#   displayName: DotNet Test
+#   inputs:
+#     command: test
+#     projects: '**/*tests.csproj'
+#     arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
 
 - task: DotNetCoreCLI@2
   displayName: DotNet Publish
@@ -56,12 +56,11 @@ steps:
     publishLocation: 'Container'
 
 - task: AzureRmWebAppDeployment@4
-  displayName: Deploy to Azure
   inputs:
     ConnectionType: 'AzureRM'
-    azureSubscription: 'Free Trial(07d2a33e-2584-4c2c-ad6a-ca6e8337dd3f)'
+    azureSubscription: 'AKrolasik(07d2a33e-2584-4c2c-ad6a-ca6e8337dd3f)'
     appType: 'webAppLinux'
-    WebAppName: 'akrolasik-api'
+    WebAppName: 'spoken-words-recognition-api'
     packageForLinux: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
     RuntimeStack: 'DOTNETCORE|3.1'
     StartupCommand: 'dotnet /home/site/wwwroot/api.dll'
