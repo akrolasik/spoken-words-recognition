@@ -25,12 +25,12 @@ steps:
     version: 3.1.x
     performMultiLevelLookup: true
 
-# - task: DotNetCoreCLI@2
-#   displayName: DotNet Test
-#   inputs:
-#     command: test
-#     projects: '**/*tests.csproj'
-#     arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
+- task: DotNetCoreCLI@2
+  displayName: DotNet Test
+  inputs:
+    command: test
+    projects: '**/*tests.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
 
 - task: DotNetCoreCLI@2
   displayName: DotNet Publish
@@ -54,22 +54,3 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'app'
     publishLocation: 'Container'
-
-- task: AzureRmWebAppDeployment@4
-  inputs:
-    ConnectionType: 'AzureRM'
-    azureSubscription: 'AKrolasik(07d2a33e-2584-4c2c-ad6a-ca6e8337dd3f)'
-    appType: 'webAppLinux'
-    WebAppName: 'spoken-words-recognition-api'
-    packageForLinux: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
-    RuntimeStack: 'DOTNETCORE|3.1'
-    StartupCommand: 'dotnet /home/site/wwwroot/api.dll'
-    ConfigurationSettings: |
-      -AzureStorage:ConnectionString "DefaultEndpointsProtocol=https;AccountName=akrolasikstorage;AccountKey=qCRTDDxPsaGa4IsGMZHqLyB60EyOj4LHfIk3wtj9/2v7nbBKWQjT6WaMaH3AkA2SDpF6K/5TB6gNTzRfs52UkQ==;EndpointSuffix=core.windows.net"
-      -JwtToken:Issuer "https://login.microsoftonline.com/d71f40ab-f3da-4c3c-bb08-746a60338321/v2.0",
-      -JwtToken:Audience "2866b31c-7df3-4252-9239-cc347a42b507",
-      -JwtToken:StsDiscoveryEndpoint "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration",
-      -JwtToken:Claims:0:Type "name",
-      -JwtToken:Claims:0:Value "Aleksander Królasik"
-      -JwtToken:Claims:1:Type "preferred_username",
-      -JwtToken:Claims:1:Value "aleksander.krolasik@gmail.com"
