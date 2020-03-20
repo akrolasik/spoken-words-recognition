@@ -1,0 +1,23 @@
+<button *ngIf="collectingState.state == 'Recording' || collectingState.currentModification == 'Noise'" 
+  [disabled]="collectingState.state == 'Uploading'" 
+  class="button" 
+  nbButton hero status="danger" 
+  (click)="onClick.emit('cancel');">
+  <nb-icon icon="mic-off-outline"></nb-icon>
+  cancel
+</button>
+<button *ngIf="collectingState.state == 'Ready' && !collectingState.modifications.get('None') && collectingState.currentModification == null" 
+  class="button"  
+  nbButton hero status="success" 
+  (click)="onClick.emit('start');">
+  <nb-icon icon="checkmark-outline"></nb-icon>
+  start
+</button>
+<button *ngIf="collectingState.state == 'Ready' && (collectingState.modifications.get('None') || collectingState.currentModification != null)" 
+  [disabled]="collectingState.currentModification == null" 
+  class="button" 
+  nbButton hero status="success" 
+  (click)="onClick.emit('start recording');">
+  <nb-icon icon="mic-outline"></nb-icon>
+  start recording
+</button>

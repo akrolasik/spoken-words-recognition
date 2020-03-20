@@ -1,0 +1,25 @@
+<app-assets-loader></app-assets-loader>
+<nb-layout>
+  <nb-layout-column style="background-color: white !important;">
+    <div id="background" class="main-container">
+      <div class="center-container">
+        <div class="title">{{headerText}}</div>
+        <div class="layers-container">
+          <canvas id="canvas" class="first-layer"></canvas>
+          <div class="second-layer">
+            <div *ngIf="collectingState.state == 'Uploading'">
+              <app-upload (eventEmitter)="uploadCallback($event)"></app-upload>
+            </div>
+            <app-recording-info [collectingState]="collectingState" (onStart)="startRecording($event)"></app-recording-info>
+          </div>
+        </div>
+        <div style="width: 100%; text-align: center;">
+          <app-recording-buttons [collectingState]="collectingState" (onClick)="onRecordingButtonClick($event)"></app-recording-buttons>
+        </div>
+      </div>
+    </div>
+    <div style="width: 100%; text-align: center;">
+      <app-footer-buttons></app-footer-buttons>
+    </div>
+  </nb-layout-column>
+</nb-layout>

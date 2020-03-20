@@ -1,0 +1,12 @@
+<nb-card size="medium">
+  <canvas [id]="issue.issueId" style="background-color: grey;" width="600" height="400" style="width: 100%; height: 200px;"></canvas>
+  <div class="details">
+      <div style="margin: 5px;"><b>speaker:</b> {{issue.speakerId}}</div>
+      <div style="margin: 5px;"><b>localization:</b> {{issue.localization}}</div>
+      <div style="margin: 5px;"><b>time:</b> {{issue.time}}</div>
+      <div style="margin: 5px;"><b>browser:</b> {{issue.browser}}</div>
+      <div style="margin: 5px;"><b>agent:</b> {{issue.userAgent}}</div>
+      <div style="margin: 5px;"><b>message:</b> {{issue.message}}</div>
+  </div>
+  <button nbButton status="danger" style="margin: 10px; margin-top: auto;" (click)="decline()">Decline</button>
+</nb-card>

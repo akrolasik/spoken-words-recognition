@@ -1,0 +1,67 @@
+# ASP.NET Core (.NET Framework)
+# Build and test ASP.NET Core projects targeting the full .NET Framework.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  inputs:
+    restoreSolution: '**/*.sln'
+
+- task: UseDotNet@2
+  displayName: 'Install .NET Core SDK'
+  inputs:
+    version: 3.1.x
+    performMultiLevelLookup: true
+
+- task: DotNetCoreCLI@2
+  displayName: DotNet Test
+  inputs:
+    command: test
+    projects: '**/*tests.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
+
+- task: DotNetCoreCLI@2
+  displayName: DotNet Publish
+  inputs:
+    command: 'publish'
+    publishWebProjects: true
+    arguments: '-r linux-x64 --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/WebApp'
+    zipAfterPublish: false
+    modifyOutputPath: false
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/WebApp'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
+    replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'app'
+    publishLocation: 'Container'
+
+- task: AzureRmWebAppDeployment@4
+  displayName: Deploy to Azure
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Free Trial(07d2a33e-2584-4c2c-ad6a-ca6e8337dd3f)'
+    appType: 'webAppLinux'
+    WebAppName: 'akrolasik-api'
+    packageForLinux: '$(Build.ArtifactStagingDirectory)/WebApp.zip'
+    RuntimeStack: 'DOTNETCORE|3.1'
+    StartupCommand: 'dotnet /home/site/wwwroot/api.dll'

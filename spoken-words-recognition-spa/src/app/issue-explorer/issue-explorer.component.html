@@ -1,0 +1,9 @@
+<nb-layout>
+  <nb-layout-column style="background-color: white;">
+      <div class="row">
+        <div *ngFor="let issue of issues" class="col-lg-3">
+          <app-issue [issue]="issue" (eventEmitter)="declineCallback($event)"></app-issue>
+        </div>
+      </div>
+  </nb-layout-column>
+</nb-layout>

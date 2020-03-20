@@ -1,0 +1,7 @@
+<nb-card size="medium">
+    <nb-card-header>Speakers Accent by Country</nb-card-header>
+    <nb-card-body>
+        <app-accents-map (select)="selectCountryById($event)" countryId="World"></app-accents-map>
+        <app-bar-chart [countryName]="countryName" [accents]="accents" [maxValue]="maxValue"></app-bar-chart>
+    </nb-card-body>
+</nb-card>

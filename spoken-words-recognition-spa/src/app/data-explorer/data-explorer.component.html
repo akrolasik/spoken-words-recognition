@@ -1,0 +1,24 @@
+<nb-layout>
+    <nb-layout-column>
+        <div class="row">
+            <div class="col-xxl-7">
+                <app-package (onRecordingsLoaded)="onRecordingsLoaded($event)"></app-package>
+                <app-accents-by-country [recordings]="recordings"></app-accents-by-country>
+                <div class="row">
+                    <div class="col-xxl-6">
+                        <app-chart></app-chart>
+                    </div>
+                    <div class="col-xxl-6">
+                        <app-chart></app-chart>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xxl-5">
+                <app-filter [words]="words" [accents]="accents" (onWordSelected)="onWordSelected($event)" (onAccentSelected)="onAccentSelected($event)"></app-filter>
+                <div class="row" style="max-height: 52rem; overflow-y: auto;" (scroll)="onScroll($event)">
+                    <app-item [class]="recording.id == null ? 'col-12' : 'col-4'" *ngFor="let recording of visibleRecordings" [recording]="recording"></app-item>
+                </div>
+            </div> 
+        </div>
+    </nb-layout-column>
+</nb-layout>

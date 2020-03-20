@@ -1,0 +1,15 @@
+<button nbButton outline class="button-bottom" (click)="link('data-explorer');">
+  <nb-icon icon="search-outline"></nb-icon>
+  Data Explorer
+</button>
+<button nbButton outline class="button-bottom" (click)="blurActive();" [nbPopover]="popover">
+  <nb-icon icon="file-text-outline"></nb-icon>
+  Report an Issue
+</button>
+<button nbButton outline class="button-bottom" (click)="link('github');">
+  <nb-icon icon="github-outline"></nb-icon>
+  Source Code
+</button>
+<ng-template #popover>
+  <app-issue-popover></app-issue-popover>
+</ng-template>

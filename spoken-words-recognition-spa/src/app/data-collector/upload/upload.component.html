@@ -1,0 +1,31 @@
+<div style="width: 450px; display: inline-grid;">
+    <div *ngIf="isAutocompleteEnabled" style="margin-top: 20px; margin-bottom: 10px;">
+        <div style="margin: 10px; font-size: 120%;">How do you feel, what is your accent?</div>
+        <mat-autocomplete #auto="matAutocomplete">
+            <mat-option *ngFor="let accent of filteredAccents | async" [value]="accent">{{accent}}</mat-option>
+        </mat-autocomplete>
+        <input [formControl]="accentControl"
+            (click)="onInputClick();"
+            autocomplete="off"
+            [matAutocomplete]="auto" 
+            id="accentInput" 
+            type="text" 
+            class="size-medium shape-rectangle" 
+            style="width: calc(60% - 10px); border-color: #edf1f7; background-color: #f7f9fc;"
+            fullwidth nbinput 
+            placeholder="Type your accent" 
+            [nbPopover]="popover" 
+            nbPopoverPlacement="bottom"/>
+        <button nbButton outline style="width: 40%; margin-left: 10px;" status="info" (click)="chooseByCountry()">I don't know...</button>
+        <ng-template #popover>
+            <div style="margin: 20px; font-weight: bold;">Is it native?</div>
+            <div id="popover" style="max-height: 300px; overflow-y: scroll;">
+                <app-tree></app-tree>
+            </div>
+        </ng-template>
+    </div>
+    <div>
+        <button nbButton hero status="danger" style="width: calc(40% - 10px);" (click)="cancel();"><nb-icon icon="close-outline"></nb-icon>Try Again</button>
+        <button nbButton hero status="success" style="margin-left: 10px; width: 60%;" (click)="tryUpload();"><nb-icon icon="corner-right-up-outline"></nb-icon>Upload</button>
+    </div>
+</div>

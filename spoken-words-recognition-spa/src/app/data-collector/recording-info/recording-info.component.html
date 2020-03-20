@@ -1,0 +1,21 @@
+<div *ngIf="collectingState.state != 'Recording' && collectingState.state != 'Uploading'">
+  <div *ngIf="!collectingState.modifications.get('None') && collectingState.currentModification == null">
+    <app-welcome-info></app-welcome-info>
+  </div>
+  <div *ngIf="collectingState.modifications.get('None') && collectingState.currentModification == null" style="font-size: 120%;">
+    <div style="margin-bottom: 10px;">To help us collect more data you can modify the parameters of the recording. Read <b>slightly</b>...</div>
+    <button [disabled]="collectingState.modifications.get('Slower')" class="button-in-text" nbButton hero (click)="onStart.emit('Slower')" status="info">SLOWER</button>
+    <button [disabled]="collectingState.modifications.get('Faster')" class="button-in-text" nbButton hero (click)="onStart.emit('Faster')" status="success">FASTER</button>
+    <button [disabled]="collectingState.modifications.get('Quieter')" class="button-in-text" nbButton hero (click)="onStart.emit('Quieter')" status="warning">QUIETER</button>
+    <button [disabled]="collectingState.modifications.get('Louder')" class="button-in-text" nbButton hero (click)="onStart.emit('Louder')" status="danger">LOUDER</button><br/> 
+    <div style="margin: 10px;">or turn on a source of</div>
+    <button [disabled]="collectingState.modifications.get('Noise')" class="button-in-text" nbButton hero (click)="collectingState.currentModification = 'Noise'" status="primary">CONSTANT BACKGROUND NOISE</button>
+    <div style="margin-top: 5px;">or <span class="text-bold">change the device</span></div>
+  </div>
+  <div *ngIf="collectingState.state == 'Ready' && collectingState.currentModification == 'Noise'" style="font-size: 150%;"> 
+    <div style="margin-bottom: 10px; margin-top: 100px;">Please turn on the noise now</div>
+  </div>
+  <div *ngIf="collectingState.state == 'Ready' && collectingState.currentModification != null && collectingState.currentModification != 'Noise'" style="font-size: 150%;">
+    <div style="margin-bottom: 10px; margin-top: 150px;">Please find a quiet place</div>
+  </div>
+</div>

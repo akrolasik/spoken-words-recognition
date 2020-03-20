@@ -1,0 +1,11 @@
+<div style="margin-bottom: 15px; text-align: right;">
+    Filter data:
+    <nb-select class="select" placeholder="Select word" [selected]="'All'" (selectedChange)="onWordSelected.emit($event)">
+        <nb-option value="All">all words</nb-option>
+        <nb-option *ngFor="let word of words" [value]="word">{{word}}</nb-option>
+    </nb-select>
+    <nb-select class="select" placeholder="Select accent" [selected]="'All'" (selectedChange)="onAccentSelected.emit($event)">
+        <nb-option value="All">all accents</nb-option>
+        <nb-option *ngFor="let accent of accents" [value]="accent">{{accent}}</nb-option>
+    </nb-select>
+</div>

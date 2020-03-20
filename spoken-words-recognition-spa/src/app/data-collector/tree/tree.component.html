@@ -1,0 +1,11 @@
+<mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+    <button nbButton outline style="border: none; color: black; text-transform: none; background-color: white;" (click)="set(node.name);">{{node.name}}</button>
+  </mat-tree-node>
+  <mat-tree-node *matTreeNodeDef="let node;when: hasChild" matTreeNodePadding>
+    <button nbButton outline style="border: none; color: gray; font-weight: normal; background-color: white;" matTreeNodeToggle [attr.aria-label]="'toggle ' + node.name" (click)="set();">
+      <nb-icon icon="{{treeControl.isExpanded(node) ? 'arrow-ios-downward-outline' : 'arrow-ios-forward-outline'}}"></nb-icon>
+      {{node.name}}
+    </button>
+  </mat-tree-node>
+</mat-tree>

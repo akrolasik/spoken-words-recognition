@@ -1,0 +1,9 @@
+<div class="header">
+    <span class="caption">Selected Country/Region</span>
+    <h2 class="h4">{{ countryName }}</h2>
+</div>
+<div style="position: relative;">
+    <div style="position: absolute; width: 100%; height: 300px;" echarts [options]="option" class="echart" (chartInit)="onChartInit($event)"></div>
+    <div style="position: absolute; width: 100%; height: 100%; text-align: center; margin-top: 130px; color: gray;" *ngIf="accents == null || accents.length == 0">no data available</div>
+</div>
+

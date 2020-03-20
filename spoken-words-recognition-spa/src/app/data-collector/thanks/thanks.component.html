@@ -1,0 +1,8 @@
+<nb-card *ngIf="popup != null" style="width: 480px;">
+  <nb-card-body style="font-size: 25px; width: 100%; text-align: center;">
+    <div style="margin: 10px 0 10px 0;">{{popup.title}}</div>
+    <div style="font-size: 20px; margin: 10px 0 5px 0;">{{popup.text}}</div>
+    <img [src]="'/assets/images/' + popup.image" width="100%" style="padding: 20px;"/>
+    <button nbButton hero status="success" (click)="done()">done</button>
+  </nb-card-body> 
+</nb-card>

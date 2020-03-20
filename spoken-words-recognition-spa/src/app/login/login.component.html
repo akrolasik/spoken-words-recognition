@@ -1,0 +1,10 @@
+<nb-layout>
+    <nb-layout-column>
+        <div *ngIf="idToken != null">
+            <h6 class="text">{{idToken.aud}}</h6>
+            <h6 class="text">{{idToken.iss}}</h6>
+            <h6 class="text">{{idToken.name}}</h6>
+            <h6 class="text">{{idToken.preferred_username}}</h6>
+        </div>
+    </nb-layout-column>
+</nb-layout>

@@ -1,0 +1,7 @@
+<nb-card *ngIf="recording.id != null" class="button" (click)="play()">
+  <span><b>{{recording.word}}</b>, {{recording.accent}}</span>
+  <span style="color: #0095ff; font-size: 12px;"><b>PLAY</b><nb-icon style="margin-left: -2px; transform: translateY(2px);" icon="arrow-right"></nb-icon></span>
+</nb-card>
+<h4 style="margin-bottom: 20px;" *ngIf="recording.id == null">
+  {{recording.word}}
+</h4>
