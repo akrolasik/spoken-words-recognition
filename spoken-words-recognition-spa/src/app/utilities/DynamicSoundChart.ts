@@ -108,7 +108,7 @@ export class DynamicSoundChart {
 
       this.canvasContext.fillStyle = this.getBarColor(freq.milliseconds, freq.value);
 
-      const height = Math.max(this.minimalBarSize, freq.value * this.canvas.height / 50);
+      const height = Math.max(this.minimalBarSize, freq.value * this.canvas.height / 300);
       const y = this.canvas.height * 3 / 4 - height / 2;
 
       this.canvasContext.fillRect(x0, y, width - this.minimalBarSize, height);

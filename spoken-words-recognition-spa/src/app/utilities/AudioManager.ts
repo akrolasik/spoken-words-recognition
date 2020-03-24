@@ -74,14 +74,17 @@ export class AudioManager {
 
       let buffer = new Uint8Array(this.analyzerSettings.fftSize);
       analyser.getByteFrequencyData(buffer);
+
+      let lowFrequencyLimit = Math.floor(buffer.length / 6);
+      let lowFrequencyBuffer = buffer.slice(0, lowFrequencyLimit);
       
-      let average = this.getAverage(buffer);
+      let average = this.getAverage(lowFrequencyBuffer);
 
       this.frequencyChunks.push({
         milliseconds: (performance.now() - this.recordingStartTime),
-        buffer: average == 0 ? new Uint8Array(0) : buffer,
+        buffer: average == 0 ? new Uint8Array(0) : lowFrequencyBuffer,
         average: average,
-        size: this.analyzerSettings.fftSize
+        size: lowFrequencyLimit
       });
     };
   }

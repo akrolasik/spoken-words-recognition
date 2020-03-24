@@ -31,7 +31,7 @@ export class StaticSoundChart {
 
     state.frequenciesChunks.forEach(frequency => {
       this.setBarColor(frequency, state.wordOccurence);
-      const h = Math.max(Math.floor(frequency.average * 3), this.barSpace);
+      const h = Math.max(Math.floor(frequency.average / 2), this.barSpace);
       this.canvasContext.fillRect(x, drawingAxis - h, this.barWidth, h * 2);
       x += this.barWidth + this.barSpace;
     });

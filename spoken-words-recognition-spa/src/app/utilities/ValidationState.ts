@@ -69,7 +69,7 @@ export class ValidationState {
       if (this.wordOccurence.start != null) { return; }
 
       const middleIndex = Math.floor(this.frequenciesChunks.length / 2);
-      const lowPass = 1;
+      const lowPass = 8;
 
       this.wordOccurence.start = 0;
       this.wordOccurence.end = 0;

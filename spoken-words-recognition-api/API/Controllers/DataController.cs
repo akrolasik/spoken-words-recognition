@@ -130,7 +130,7 @@ namespace API.Controllers
 
         [HttpGet]
         [Route("raw/{rawRecordingId}/frequencies")]
-        public async Task<ActionResult<FrequenciesChunk[]>> GetFrequencies([FromRoute]Guid rawRecordingId)
+        public async Task<ActionResult<FrequenciesChunk[]>> GetRawFrequencies([FromRoute]Guid rawRecordingId)
         {
             return (await _rawFrequenciesRepository.GetFileContent(rawRecordingId)).FrequenciesChunks;
         }
@@ -151,8 +151,6 @@ namespace API.Controllers
                 Word = x.Word.InWords
             }).ToList();
 
-            await _recordingsRepository.AddRows(recordings.Select(x => x.Value));
-
             var fileName = $"{rawRecordingId}.weba";
             await _audioRepository.DownloadFile("raw-audio", fileName, fileName);
             var rawFrequencies = await _rawFrequenciesRepository.GetFileContent(rawRecordingId);
@@ -160,17 +158,27 @@ namespace API.Controllers
             foreach (var (word, recording) in recordings)
             {
                 CreateMp3(rawRecordingId, recording.Id, word);
-                await UploadFrequencies(rawFrequencies, recording.Id, word);
                 await UploadMp3(recording.Id);
-
                 System.IO.File.Delete($"{recording.Id}.mp3");
+
+                recording.ChunksCount = await UploadFrequencies(rawFrequencies, recording.Id, word);
             }
+
+            await _recordingsRepository.AddRows(recordings.Select(x => x.Value));
 
             System.IO.File.Delete(fileName);
 
             _ = DeleteRawRecording(rawRecordingId);
 
             return Ok();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("{recordingId}/frequencies")]
+        public async Task<ActionResult<FrequenciesChunk[]>> GetFrequencies([FromRoute]Guid recordingId)
+        {
+            return (await _frequenciesRepository.GetFileContent(recordingId)).FrequenciesChunks;
         }
 
         private void CreateMp3(Guid rawRecordingId, Guid recordingId, WordOccurence word)
@@ -198,7 +206,7 @@ namespace API.Controllers
             await _audioRepository.UploadFile("audio", filename, filename);
         }
 
-        private async Task UploadFrequencies(RawFrequencies rawFrequencies, Guid recordingId, WordOccurence word)
+        private async Task<int> UploadFrequencies(RawFrequencies rawFrequencies, Guid recordingId, WordOccurence word)
         {
             var frequencies = new Frequencies
             {
@@ -208,6 +216,8 @@ namespace API.Controllers
             };
 
             await _frequenciesRepository.SetFileContent(recordingId, frequencies);
+
+            return frequencies.FrequenciesChunks.Length;
         }
 
         private string CharArrayToAnsiString(string array)

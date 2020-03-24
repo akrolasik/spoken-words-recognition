@@ -65,6 +65,7 @@ export class PckageComponent implements OnInit {
       accent: properties[3],
       localization: properties[4],
       modification: properties[5] as Modification,
+      chunksCount: Number.parseInt(properties[6]),
       zipEntry: this.files.find(x => x.filename == `${properties[0]}.mp3`),
     };
   }

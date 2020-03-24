@@ -8,5 +8,6 @@ export class Recording {
   localization: string;
   modification: Modification;
   word: string;
+  chunksCount: number;
   zipEntry: ZipEntry;
 }

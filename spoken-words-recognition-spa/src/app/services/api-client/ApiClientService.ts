@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Image } from './Image';
 import { ReportedIssue } from './ReportedIssue';
 import { RawRecording } from './RawRecording';
-import { SessionStorageService } from 'ngx-webstorage';
+import { SessionStorageService, LocalStorageService } from 'ngx-webstorage';
 import { Observable } from 'rxjs';
 import { WordOccurence } from './WordOccurence';
 import { FrequenciesChunk } from './FrequenciesChunk';
@@ -13,15 +13,17 @@ import { FrequenciesChunk } from './FrequenciesChunk';
 })
 export class ApiClientService {
 
-
-  baseUrl = 'https://localhost:5001'; // 'https://akrolasik-api.azurewebsites.net';
+  baseUrl = 'https://localhost:5001';//'https://spoken-words-recognition-api.azurewebsites.net';
 
   token: string;
   headers: HttpHeaders = new HttpHeaders({
     'Content-Type': 'application/json',
   });
 
-  constructor(private http: HttpClient, private storage: SessionStorageService) { }
+  constructor(
+    private http: HttpClient, 
+    private sessionStorage: SessionStorageService,
+    private localStorage: LocalStorageService) { }
 
   public putReportedIssue(reportedIssue: ReportedIssue) {
     const url = `${this.baseUrl}/analytics/issue`;
@@ -93,6 +95,20 @@ export class ApiClientService {
     return this.http.get<FrequenciesChunk[]>(url, this.getOptions());
   }
 
+  public async getRecordingFrequencies(recordingId: string): Promise<FrequenciesChunk[]> {
+    
+    let key = `frequencies/${recordingId}`;
+    let frequencies = this.localStorage.retrieve(key);
+    
+    if(frequencies == null) {
+      const url = `${this.baseUrl}/data/${recordingId}/frequencies`;
+      frequencies = await this.http.get<FrequenciesChunk[]>(url, this.getOptions()).toPromise();
+      this.localStorage.store(key, frequencies);
+    }
+
+    return frequencies;
+  }
+
   public deleteRawRecording(rawRecordingId: string) {
     const url = `${this.baseUrl}/data/raw/${rawRecordingId}`;
     this.http.delete(url, ).toPromise();
@@ -111,7 +127,7 @@ export class ApiClientService {
   private getOptions(responseType: any = null) {
 
     if (this.token == null) {
-        this.token = this.storage.retrieve('id_token');
+        this.token = this.sessionStorage.retrieve('id_token');
     }
 
     if (this.token != null) {

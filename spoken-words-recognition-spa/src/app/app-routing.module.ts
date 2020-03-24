@@ -23,9 +23,24 @@ const routes: Routes = [
       .then(m => m.IssueExplorerModule)
   },
   {
+    path: 'neural-network-tool',
+    loadChildren: () => import('./neural-network-tool/neural-network-tool.module')
+      .then(m => m.NeuralNetworkToolModule)
+  },
+  {
     path: 'login',
     loadChildren: () => import('./login/login.module')
       .then(m => m.LoginModule)
+  },
+  {
+    path: '',
+    redirectTo: '/neural-network-tool',
+    pathMatch: 'full'
+  },
+  {
+    path: '*',
+    redirectTo: '/neural-network-tool',
+    pathMatch: 'full'
   },
 ];
 

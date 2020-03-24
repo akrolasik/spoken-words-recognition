@@ -1,0 +1,176 @@
+<nb-card>
+    <nb-card-header>Add New Evolution</nb-card-header>
+    <nb-card-body>
+        <div class="row">
+            <div class="col-xxl-5">
+                <div style="margin-top: 5px;">Evolution name: </div>
+            </div>
+            <div class="col-xxl-7">
+                <div>
+                    <button size="tiny" nbButton status="info" outline (click)="evolution.name = randomNamesService.getRandomName(); blurActiveElement();">{{evolution.name}}
+                        <nb-icon style="margin-left: 5px;" icon="repeat-outline"></nb-icon> 
+                    </button>
+                </div>
+            </div>
+            <div class="col-xxl-5">
+                <div style="margin-top: 15px;">Words included in training: </div>
+            </div>
+            <div class="col-xxl-7">
+                <div style="margin-top: 10px;">
+                    <button 
+                        size="tiny" 
+                        nbButton 
+                        status="info" 
+                        outline
+                        [nbPopover]="wordsPopover"
+                        nbPopoverPlacement="right">
+                        Selected words: {{selectedWordsCount()}}
+                    </button>
+                </div>
+            </div>
+            <div class="col-xxl-5">
+                <div style="margin-top: 15px;">Accents included in training: </div>
+            </div>
+            <div class="col-xxl-7">
+                <div style="margin-top: 10px;">
+                    <button 
+                        size="tiny" 
+                        nbButton 
+                        status="info" 
+                        outline
+                        [nbPopover]="accentsPopover"
+                        nbPopoverPlacement="right">
+                        Selected accents: {{selectedAccentsCount()}}
+                    </button>
+                </div>
+            </div>
+            <div class="col-xxl-5">
+                <div style="margin-top: 15px;">Modifications included in training: </div>
+            </div>
+            <div class="col-xxl-7">
+                <div style="margin-top: 10px;">
+                    <button 
+                        size="tiny" 
+                        nbButton 
+                        status="info" 
+                        outline
+                        [nbPopover]="modificationsPopover"
+                        nbPopoverPlacement="right">
+                        Selected modifications: {{selectedModificationsCount()}}
+                    </button>
+                </div>
+            </div>
+            <div class="col-xxl-5">
+                <div style="margin-top: 15px;">Number of hidden layers: </div>
+            </div>
+            <div class="col-xxl-7">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 50px;" 
+                        type="number" 
+                        [value]="evolution.numberOfHiddenLayers" 
+                        (change)="onNumberOfHiddenLayersChange($event)"/>
+                </div>
+            </div>
+            <div class="col-xxl-5">
+                <div style="margin-top: 15px;">Number of neuron in hidden layers: </div>
+            </div>
+            <div class="col-xxl-7">
+                <div style="margin-top: 10px;">
+                    <input *ngFor="let numberOfNeurons of evolution.numberOfNeuronsInHiddenLayers; let i = index; trackBy: trackArray;"
+                        class="size-large shape-rectangle" 
+                        style="margin-right: 5px; width: 50px;" 
+                        type="number" 
+                        name="name" 
+                        [ngModel]="evolution.numberOfNeuronsInHiddenLayers[i]"
+                        (change)="onNumberOfNeuronsInHiddenLayersChange(i,$event)"/>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <b>Selection rules</b>
+        </div>
+        <div class="row">
+            <div class="col-xxl-3">
+                <div style="margin-top: 15px;">Population count:</div>
+            </div>
+            <div class="col-xxl-9">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 50px;" 
+                        [ngModel]="evolution.populationCount"
+                        type="number"/>
+                </div>
+            </div>
+            <div class="col-xxl-3">
+                <div style="margin-top: 15px;">Survival factor:</div>
+            </div>
+            <div class="col-xxl-9">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 50px;" 
+                        [ngModel]="evolution.survivalFactor"
+                        type="number"/>
+                        [%] (percentage of the best units that survive)
+                </div>
+            </div>
+            <div class="col-xxl-3">
+                <div style="margin-top: 15px;">Mutation factor:</div>
+            </div>
+            <div class="col-xxl-9">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 50px;" 
+                        [ngModel]="evolution.mutationFactor"
+                        type="number"/>
+                        [%] (percentage of the parameters that mutate)
+                </div>
+            </div>
+            <div class="col-xxl-3">
+                <div style="margin-top: 15px;">Mutation force:</div>
+            </div>
+            <div class="col-xxl-9">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 50px;" 
+                        [ngModel]="evolution.mutationForce"
+                        type="number"/>
+                        [%] (mutation changes relative to parameter values)
+                </div>
+            </div>
+        </div>
+        <button style="margin-top: 30px;" nbButton status="info" (click)="addNewEvolution(); blurActiveElement();">Add Evolution</button>
+    </nb-card-body>
+</nb-card>
+<ng-template #wordsPopover>
+    <nb-card style="margin: 0;">
+        <nb-card-body>
+            <div *ngFor="let word of wordsIncluded" >
+                <nb-checkbox [checked]="word.selected" (change)="word.selected = $event.target.checked">{{word.word}}</nb-checkbox>
+            </div>
+        </nb-card-body>
+    </nb-card>
+</ng-template>
+<ng-template #accentsPopover>
+    <nb-card style="margin: 0;">
+        <nb-card-body>
+            <div *ngFor="let accent of accentsIncluded" >
+                <nb-checkbox [checked]="accent.selected" (change)="accent.selected = $event.target.checked">{{accent.accent}}</nb-checkbox>
+            </div>
+        </nb-card-body>
+    </nb-card>
+</ng-template>
+<ng-template #modificationsPopover>
+    <nb-card style="margin: 0;">
+        <nb-card-body>
+            <div *ngFor="let modification of modificationsIncluded" >
+                <nb-checkbox [checked]="modification.selected" (change)="modification.selected = $event.target.checked">{{modification.modification}}</nb-checkbox>
+            </div>
+        </nb-card-body>
+    </nb-card>
+</ng-template>

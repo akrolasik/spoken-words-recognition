@@ -1,0 +1,80 @@
+<nb-card #background id="background">
+    <nb-card-header>
+        {{evolution.name}}
+        <div style="float: right;">
+            <button 
+                nbButton 
+                status="danger" 
+                outline 
+                style="background-color: transparent; border: none; margin: -10px;" 
+                [nbPopover]="popover"
+                nbPopoverPlacement="right">
+                delete
+            </button>
+        </div>
+        <nb-toggle 
+            status="info" 
+            style="float: right; margin: -20px 50px 0 0; transform: translateY(17px);"
+            [checked]="evolution.isProcessing" 
+            (change)="onIsProcessingChange($event)">
+            <div style="font-weight: normal; font-size: 15px;">Total computing time: <b>{{totalComputingTime}}</b></div>
+        </nb-toggle>
+    </nb-card-header>
+    <nb-card-body>
+        <div class="row">
+            <div class="col-xxl-5">
+                <div style="margin-bottom: 10px;">
+                    Words included in training: <b>{{evolution.wordsIncluded}}</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Accents included in training: <b>{{evolution.accentsIncluded}}</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Modifications included in training: <b>{{evolution.modificationsIncluded}}</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Total number of words: <b>10000</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Number of hidden layers: <b>{{evolution.numberOfHiddenLayers}}</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Number of neuron in hidden layers: <b>{{evolution.numberOfNeuronsInHiddenLayers}}</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Population count: <b>{{evolution.populationCount}}</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Survival factor: <b>{{evolution.survivalFactor}}%</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Mutation factor: <b>{{evolution.mutationFactor}}%</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Mutation force: <b>{{evolution.mutationForce}}%</b>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    Input resolution: <b>50x170</b>
+                </div>
+            </div>
+            <div class="col-xxl-7">
+                <div style="background-color: gray; height: 300px; margin-bottom: 10px;"></div>
+                <div>
+                    <span>Gen: <b>25</b></span>
+                    <span style="margin-left: 20px;">Next gen: <b>1m47s</b></span>
+                    <span style="margin-left: 20px;">Avg time/gen: <b>15min</b></span>
+                    <span style="margin-left: 20px;">Avg time/word: <b>100ms</b></span>
+                </div>
+            </div>
+        </div>
+    </nb-card-body>
+</nb-card>
+<ng-template #popover>
+    <nb-card style="margin: 0;">
+        <nb-card-header>Are you sure?</nb-card-header>
+        <nb-card-body>
+            <div style="margin-bottom: 10px;">The evolution will be gone</div>
+            <button nbButton status="danger" (click)="delete()" style="width: 200px;">delete</button>
+        </nb-card-body>
+    </nb-card>
+</ng-template>
