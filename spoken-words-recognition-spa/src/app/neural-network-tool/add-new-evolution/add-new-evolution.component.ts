@@ -1,7 +1,10 @@
-import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { RandomNamesService } from 'src/app/services/random-names.service';
 import { Guid } from 'guid-typescript';
-import { Evolution } from '../../utilities/Evolution';
+import { DataService } from 'src/app/services/data.service';
+import { Recording } from 'src/app/services/api-client/Recording';
+import { EvolutionConfig } from '../evolution-tile/evolution-tile.component';
+import { EvolutionService } from 'src/app/services/evolution.service';
 
 @Component({
   selector: 'app-add-new-evolution',
@@ -10,17 +13,36 @@ import { Evolution } from '../../utilities/Evolution';
 })
 export class AddNewEvolutionComponent implements OnInit {
   
-  @Input() words: string[];
-  @Input() accents: string[];
-  @Input() modifications: string[];
-  @Output() newEvolution: EventEmitter<Evolution> = new EventEmitter();
+  words: string[];
+  accents: string[];
+  modifications: string[];
 
-  evolution: Evolution;
+  evolution: EvolutionConfig;
   wordsIncluded: any[] = [];
   accentsIncluded: any[] = [];
   modificationsIncluded: any[] = [];
+  recordings: Recording[];
 
-  constructor(private randomNamesService: RandomNamesService) { }
+  constructor(
+    private evolutionService: EvolutionService, 
+    private randomNamesService: RandomNamesService, 
+    private dataService: DataService) {
+    this.dataService.recordings.asObservable().subscribe(recordings => {
+      this.onRecordingsLoaded(recordings);
+    });
+  }
+
+  onRecordingsLoaded(recordings: Recording[]) {
+    this.recordings = recordings;
+    this.words = this.unique(this.recordings.map(x => x.word));
+    this.accents = this.unique(this.recordings.map(x => x.accent));
+    this.modifications = this.unique(this.recordings.map(x => x.modification));
+    this.initData();
+  }
+
+  private unique(array: any[]): any[] {
+    return array.filter((x, i, a) => a.indexOf(x) === i);
+  }
 
   ngOnInit(): void {
     this.init();
@@ -28,21 +50,33 @@ export class AddNewEvolutionComponent implements OnInit {
 
   init() {
     this.evolution = {
-      id: Guid.create(),
+      id: Guid.create().toString(),
       name: this.randomNamesService.getRandomName(),
-      numberOfHiddenLayers: 3,
-      numberOfNeuronsInHiddenLayers: [100, 100, 100],
-      wordsIncluded: [],
-      accentsIncluded: [],
-      modificationsIncluded: [],
-      populationCount: 100,
-      survivalFactor: 10,
-      mutationFactor: 10,
-      mutationForce: 10,
-      isProcessing: false,
-      totalComputingTimeInSeconds: 0
+      isRunning: false,
+      networkConfig: {
+        inputResolution: { width: 50, height: 170 },
+        hiddenLayersNeuronCount: [400, 100],
+        outputCount: 25
+      },
+      trainingConfig: {
+        wordSetSize: 10,
+        packageFileName: null,
+        wordsIncluded: [],
+        accentsIncluded: [],
+        modificationsIncluded: []
+      },
+      gradientConfig: {
+        gradientFactor: 0.001,
+        weightGradientFactor: 1,
+        biasGradientFactor: 1,
+        inputGradientFactor: 1,
+      }
     };
 
+    this.initData();
+  }
+
+  initData() {
     this.wordsIncluded = [];
     this.words.forEach(word => {
       this.wordsIncluded.push({
@@ -70,13 +104,12 @@ export class AddNewEvolutionComponent implements OnInit {
 
   onNumberOfHiddenLayersChange(event: any) {
     let newNumber = event.target.valueAsNumber;
-    this.evolution.numberOfHiddenLayers = newNumber;
-    this.resize(this.evolution.numberOfNeuronsInHiddenLayers, newNumber, null);
+    this.resize(this.evolution.networkConfig.hiddenLayersNeuronCount, newNumber, null);
   }
 
   onNumberOfNeuronsInHiddenLayersChange(index: number, event: any) {
     let newNumber = event.target.valueAsNumber;
-    this.evolution.numberOfNeuronsInHiddenLayers[index] = newNumber;
+    this.evolution.networkConfig.hiddenLayersNeuronCount[index] = newNumber;
   }
 
   trackArray(index, item) {
@@ -84,15 +117,21 @@ export class AddNewEvolutionComponent implements OnInit {
   }
 
   display() {
-    let nums = this.evolution.numberOfNeuronsInHiddenLayers.map(x => x == null ? '?' : x.toString());
+    let nums = this.evolution.networkConfig.hiddenLayersNeuronCount.map(x => x == null ? '?' : x.toString());
     return nums;
   }
 
-  addNewEvolution() {
-    this.evolution.wordsIncluded = this.wordsIncluded.filter(x => x.selected).map(x => x.word);
-    this.evolution.accentsIncluded = this.accentsIncluded.filter(x => x.selected).map(x => x.accent);
-    this.evolution.modificationsIncluded = this.modificationsIncluded.filter(x => x.selected).map(x => x.modification);
-    this.newEvolution.emit(this.evolution);
+  async addNewEvolution() {
+    this.evolution.trainingConfig.wordsIncluded = this.wordsIncluded.filter(x => x.selected).map(x => x.word);
+    this.evolution.trainingConfig.accentsIncluded = this.accentsIncluded.filter(x => x.selected).map(x => x.accent);
+    this.evolution.trainingConfig.modificationsIncluded = this.modificationsIncluded.filter(x => x.selected).map(x => x.modification);
+    this.evolution.trainingConfig.packageFileName = this.dataService.loadedFileName;
+
+    this.evolution.networkConfig.outputCount = this.evolution.trainingConfig.wordsIncluded.length;
+
+    console.log(this.evolution);
+    await this.evolutionService.addEvolution(this.evolution);
+
     this.init();
   }
 
@@ -109,7 +148,7 @@ export class AddNewEvolutionComponent implements OnInit {
   selectedModificationsCount() {
     let selected = this.modificationsIncluded.filter(x => x.selected).length;
     return selected == this.modificationsIncluded.length ? 'all' : selected;
-  }
+  } 
 
   // retrieve() {
   //   this.numberOfHiddenLayers = this.storage.retrieve("numberOfHiddenLayers") ?? 3;

@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Image } from './Image';
 import { ReportedIssue } from './ReportedIssue';
 import { RawRecording } from './RawRecording';
-import { SessionStorageService, LocalStorageService } from 'ngx-webstorage';
+import { SessionStorageService } from 'ngx-webstorage';
 import { Observable } from 'rxjs';
 import { WordOccurence } from './WordOccurence';
 import { FrequenciesChunk } from './FrequenciesChunk';
@@ -22,8 +22,7 @@ export class ApiClientService {
 
   constructor(
     private http: HttpClient, 
-    private sessionStorage: SessionStorageService,
-    private localStorage: LocalStorageService) { }
+    private sessionStorage: SessionStorageService) { }
 
   public putReportedIssue(reportedIssue: ReportedIssue) {
     const url = `${this.baseUrl}/analytics/issue`;
@@ -95,18 +94,9 @@ export class ApiClientService {
     return this.http.get<FrequenciesChunk[]>(url, this.getOptions());
   }
 
-  public async getRecordingFrequencies(recordingId: string): Promise<FrequenciesChunk[]> {
-    
-    let key = `frequencies/${recordingId}`;
-    let frequencies = this.localStorage.retrieve(key);
-    
-    if(frequencies == null) {
-      const url = `${this.baseUrl}/data/${recordingId}/frequencies`;
-      frequencies = await this.http.get<FrequenciesChunk[]>(url, this.getOptions()).toPromise();
-      this.localStorage.store(key, frequencies);
-    }
-
-    return frequencies;
+  public getRecordingFrequencies(recordingId: string): Observable<FrequenciesChunk[]> {
+    const url = `${this.baseUrl}/data/${recordingId}/frequencies`;
+    return this.http.get<FrequenciesChunk[]>(url, this.getOptions());
   }
 
   public deleteRawRecording(rawRecordingId: string) {

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Recording } from '../services/api-client/Recording';
+import { DataService } from '../services/data.service';
 
 @Component({
   selector: 'app-data-explorer',
@@ -22,7 +23,11 @@ export class DataExplorerComponent {
   selectedWord: string = "All";
   selecteAccent: string = "All";
 
-  constructor() {}
+  constructor(private data: DataService) {
+      this.data.recordings.asObservable().subscribe(recordings => {
+        this.onRecordingsLoaded(recordings);
+      });
+    }
 
   onRecordingsLoaded(recordings: Recording[]) {
     this.recordings = recordings;

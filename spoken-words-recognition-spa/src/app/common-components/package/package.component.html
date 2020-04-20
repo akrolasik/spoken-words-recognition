@@ -1,0 +1,6 @@
+<div style="margin-bottom: 25px;">
+    <button [size]="size" nbButton status="info" class="button" [disabled]="isDownloadButtonDisabled" (click)="DownloadPackage()">{{downloadButtonText}}</button>
+    <button [size]="size" nbButton outline status="info" class="button" (click)="fileInput.click()">Load data</button>
+    <span>{{fileName}}</span>
+    <input style="display: none;" #fileInput type="file" (change)="fileChanged($event)">
+</div>

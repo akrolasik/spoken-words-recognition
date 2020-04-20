@@ -25,8 +25,6 @@ export class UploadComponent implements OnInit {
   filteredAccents: Observable<string[]>;
   click: BehaviorSubject<boolean>;
 
-  
-
   constructor(private analytics: AnalyticsService, private dialogService: NbDialogService) {
     const accent = this.analytics.getValue<string>('accent');
     this.accentControl.setValue(accent);

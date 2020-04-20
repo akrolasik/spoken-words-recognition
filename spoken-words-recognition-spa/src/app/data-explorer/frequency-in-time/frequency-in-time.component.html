@@ -6,6 +6,7 @@
         <div>Accent: <b>{{recording.accent}}</b></div>
         <div>Localization: <b>{{recording.localization}}</b></div>
         <div>Modification: <b>{{recording.modification}}</b></div>
+        <div style="margin-top: 10px;"><nb-toggle [checked]="blur" (change)="onBlurChange($event)">Blur</nb-toggle></div>
         <canvas style="margin-top: 20px;" id="canvas" width="500px" height="500px"></canvas>
     </nb-card-body>
 </nb-card>

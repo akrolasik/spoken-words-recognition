@@ -2,13 +2,15 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NeuralNetworkToolComponent } from './neural-network-tool.component';
 import { Routes, RouterModule } from '@angular/router';
-import { NbCardModule, NbLayoutModule, NbButtonModule, NbPopoverModule, NbCheckboxModule, NbIconModule, NbToggleModule } from '@nebular/theme';
+import { NbCardModule, NbLayoutModule, NbButtonModule, NbPopoverModule, NbCheckboxModule, NbIconModule, NbToggleModule, NbTooltipModule, NbTabsetModule } from '@nebular/theme';
 import { AddNewEvolutionComponent } from './add-new-evolution/add-new-evolution.component';
 import { FormsModule } from '@angular/forms';
-import { EvolutionTileComponent } from './evolution-tile/evolution-tile.component';
+import { EvolutionTileComponent, WorkDayPipe } from './evolution-tile/evolution-tile.component';
+import { NgxEchartsModule } from 'ngx-echarts';
+import { CommonComponentsModule } from '../common-components/common-components.module';
+import { ChartWithScrollComponent } from './evolution-tile/chart-with-scroll/chart-with-scroll.component';
 
-export const routes: Routes = [
-  { 
+export const routes: Routes = [{ 
     path: '', 
     component: NeuralNetworkToolComponent 
   }
@@ -18,7 +20,9 @@ export const routes: Routes = [
   declarations: [
     NeuralNetworkToolComponent, 
     AddNewEvolutionComponent, 
-    EvolutionTileComponent,  
+    EvolutionTileComponent, 
+    ChartWithScrollComponent,  
+    WorkDayPipe
   ],
   imports: [
     CommonModule,
@@ -31,6 +35,10 @@ export const routes: Routes = [
     FormsModule,
     NbIconModule,
     NbToggleModule,
+    NgxEchartsModule,
+    CommonComponentsModule,
+    NbTooltipModule,
+    NbTabsetModule
   ]
 })
 export class NeuralNetworkToolModule { }

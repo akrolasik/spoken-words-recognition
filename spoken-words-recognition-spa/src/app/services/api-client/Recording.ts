@@ -1,5 +1,5 @@
 import { Modification } from './Modification';
-import { ZipEntry } from '../data.service';
+import { ZipEntry } from "../ZipEntry";
 
 export class Recording {
   id: string;

@@ -4,7 +4,7 @@ import { DataExplorerComponent } from './data-explorer.component';
 import { ChartComponent } from './chart/chart.component';
 import { AccentsByCountryComponent } from './accents-by-country/accents-by-country.component';
 import { Routes, RouterModule } from '@angular/router';
-import { NbCardModule, NbSelectModule, NbListModule, NbButtonModule, NbLayoutModule, NbIconModule } from '@nebular/theme';
+import { NbCardModule, NbSelectModule, NbListModule, NbButtonModule, NbLayoutModule, NbIconModule, NbToggleModule } from '@nebular/theme';
 import { AccentsMapComponent } from './accents-by-country/accents-map/accents-map.component';
 import { BarChartComponent } from './accents-by-country/bar-chart/bar-chart.component';
 import { LeafletModule } from '@asymmetrik/ngx-leaflet';
@@ -12,8 +12,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgxEchartsModule } from 'ngx-echarts';
 import { FilterComponent } from './filter/filter.component';
 import { ItemComponent } from './item/item.component';
-import { PckageComponent } from './package/package.component';
 import { FrequencyInTimeComponent } from './frequency-in-time/frequency-in-time.component';
+import { CommonComponentsModule } from '../common-components/common-components.module';
 
 export const routes: Routes = [
   { path: '', component: DataExplorerComponent },
@@ -28,7 +28,6 @@ export const routes: Routes = [
     BarChartComponent,
     FilterComponent,
     ItemComponent,
-    PckageComponent,
     FrequencyInTimeComponent
   ],
   imports: [
@@ -43,7 +42,9 @@ export const routes: Routes = [
     LeafletModule,
     FormsModule,
     ReactiveFormsModule,
-    NgxEchartsModule
+    NgxEchartsModule,
+    CommonComponentsModule,
+    NbToggleModule
   ]
 })
 export class DataExplorerModule { }

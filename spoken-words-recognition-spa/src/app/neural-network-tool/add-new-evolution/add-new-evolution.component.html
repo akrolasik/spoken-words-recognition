@@ -1,23 +1,29 @@
 <nb-card>
     <nb-card-header>Add New Evolution</nb-card-header>
     <nb-card-body>
+        <div style="margin: 0 0 15px 0;">
+            <b>Details</b>
+        </div>
         <div class="row">
-            <div class="col-xxl-5">
-                <div style="margin-top: 5px;">Evolution name: </div>
+            <div style="margin: 0 20px 0 30px;">Evolution name: </div>
+            <button size="tiny" nbButton status="info" outline (click)="evolution.name = randomNamesService.getRandomName(); blurActiveElement();">{{evolution.name}}
+                <nb-icon style="margin-left: 5px;" icon="repeat-outline"></nb-icon> 
+            </button>
+        </div>
+        <div style="margin: 20px 0 15px 0;">
+            <b>Training</b>
+        </div>
+        <div class="row">
+            <div class="col-12" style="margin: 0 0 -15px 15px">
+                <app-package size="small"></app-package>
             </div>
-            <div class="col-xxl-7">
-                <div>
-                    <button size="tiny" nbButton status="info" outline (click)="evolution.name = randomNamesService.getRandomName(); blurActiveElement();">{{evolution.name}}
-                        <nb-icon style="margin-left: 5px;" icon="repeat-outline"></nb-icon> 
-                    </button>
-                </div>
+            <div class="col-4">
+                <div style="margin: 10px 20px 0 15px;">Words included in training: </div>
             </div>
-            <div class="col-xxl-5">
-                <div style="margin-top: 15px;">Words included in training: </div>
-            </div>
-            <div class="col-xxl-7">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <button 
+                        [disabled]="!dataService.isLoaded()"
                         size="tiny" 
                         nbButton 
                         status="info" 
@@ -28,12 +34,13 @@
                     </button>
                 </div>
             </div>
-            <div class="col-xxl-5">
-                <div style="margin-top: 15px;">Accents included in training: </div>
+            <div class="col-4">
+                <div style="margin: 10px 20px 0 15px;">Accents included in training: </div>
             </div>
-            <div class="col-xxl-7">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <button 
+                        [disabled]="!dataService.isLoaded()"
                         size="tiny" 
                         nbButton 
                         status="info" 
@@ -44,12 +51,13 @@
                     </button>
                 </div>
             </div>
-            <div class="col-xxl-5">
-                <div style="margin-top: 15px;">Modifications included in training: </div>
+            <div class="col-4">
+                <div style="margin: 10px 20px 0 15px;">Modifications included in training: </div>
             </div>
-            <div class="col-xxl-7">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <button 
+                        [disabled]="!dataService.isLoaded()"
                         size="tiny" 
                         nbButton 
                         status="info" 
@@ -60,91 +68,135 @@
                     </button>
                 </div>
             </div>
-            <div class="col-xxl-5">
-                <div style="margin-top: 15px;">Number of hidden layers: </div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Word set size: </div>
             </div>
-            <div class="col-xxl-7">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
-                        style="width: 50px;" 
+                        style="width: 70px;" 
                         type="number" 
-                        [value]="evolution.numberOfHiddenLayers" 
-                        (change)="onNumberOfHiddenLayersChange($event)"/>
+                        [(ngModel)]="evolution.trainingConfig.wordSetSize"/>
                 </div>
             </div>
-            <div class="col-xxl-5">
-                <div style="margin-top: 15px;">Number of neuron in hidden layers: </div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Iterations limit:</div>
             </div>
-            <div class="col-xxl-7">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
-                    <input *ngFor="let numberOfNeurons of evolution.numberOfNeuronsInHiddenLayers; let i = index; trackBy: trackArray;"
+                    <input 
                         class="size-large shape-rectangle" 
-                        style="margin-right: 5px; width: 50px;" 
-                        type="number" 
-                        name="name" 
-                        [ngModel]="evolution.numberOfNeuronsInHiddenLayers[i]"
-                        (change)="onNumberOfNeuronsInHiddenLayersChange(i,$event)"/>
+                        style="width: 70px;" 
+                        [(ngModel)]="evolution.trainingConfig.iterationLimit"
+                        type="number"/>
                 </div>
             </div>
         </div>
         <div style="margin-top: 20px;">
-            <b>Selection rules</b>
+            <b>Network</b>
         </div>
         <div class="row">
-            <div class="col-xxl-3">
-                <div style="margin-top: 15px;">Population count:</div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Input resolution: </div>
             </div>
-            <div class="col-xxl-9">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
-                        style="width: 50px;" 
-                        [ngModel]="evolution.populationCount"
-                        type="number"/>
+                        style="margin-right: 5px; width: 70px;"  
+                        type="number" 
+                        [(ngModel)]="evolution.networkConfig.inputResolution.width"/>
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="margin-right: 5px; width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.networkConfig.inputResolution.height"/>
                 </div>
             </div>
-            <div class="col-xxl-3">
-                <div style="margin-top: 15px;">Survival factor:</div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Number of hidden layers: </div>
             </div>
-            <div class="col-xxl-9">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
-                        style="width: 50px;" 
-                        [ngModel]="evolution.survivalFactor"
-                        type="number"/>
-                        [%] (percentage of the best units that survive)
+                        style="width: 70px;" 
+                        type="number" 
+                        [value]="evolution.networkConfig.hiddenLayersNeuronCount.length" 
+                        (change)="onNumberOfHiddenLayersChange($event)"/>
                 </div>
             </div>
-            <div class="col-xxl-3">
-                <div style="margin-top: 15px;">Mutation factor:</div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Number of neuron in hidden layers: </div>
             </div>
-            <div class="col-xxl-9">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
-                    <input 
+                    <input *ngFor="let numberOfNeurons of evolution.networkConfig.hiddenLayersNeuronCount; let i = index; trackBy: trackArray;"
                         class="size-large shape-rectangle" 
-                        style="width: 50px;" 
-                        [ngModel]="evolution.mutationFactor"
-                        type="number"/>
-                        [%] (percentage of the parameters that mutate)
+                        style="margin-right: 5px; width: 70px;" 
+                        type="number" 
+                        name="name" 
+                        [ngModel]="evolution.networkConfig.hiddenLayersNeuronCount[i]"
+                        (change)="onNumberOfNeuronsInHiddenLayersChange(i,$event)"/>
                 </div>
             </div>
-            <div class="col-xxl-3">
-                <div style="margin-top: 15px;">Mutation force:</div>
+            
+        </div>
+        <div style="margin-top: 20px;">
+            <b>Gradient</b>
+        </div>
+        <div class="row">
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Gradient factor: </div>
             </div>
-            <div class="col-xxl-9">
+            <div class="col-8">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
-                        style="width: 50px;" 
-                        [ngModel]="evolution.mutationForce"
-                        type="number"/>
-                        [%] (mutation changes relative to parameter values)
+                        style="margin-right: 5px; width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.gradientConfig.gradientFactor"/>
+                </div>
+            </div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Weightg radient factor: </div>
+            </div>
+            <div class="col-8">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="margin-right: 5px; width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.gradientConfig.weightGradientFactor"/>
+                </div>
+            </div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Bias gradient factor: </div>
+            </div>
+            <div class="col-8">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="margin-right: 5px; width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.gradientConfig.biasGradientFactor"/>
+                </div>
+            </div>
+            <div class="col-4">
+                <div style="margin: 12px 20px 0 15px;">Input gradient factor: </div>
+            </div>
+            <div class="col-8">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="margin-right: 5px; width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.gradientConfig.inputGradientFactor"/>
                 </div>
             </div>
         </div>
-        <button style="margin-top: 30px;" nbButton status="info" (click)="addNewEvolution(); blurActiveElement();">Add Evolution</button>
+        <button style="margin-top: 30px;" [disabled]="!dataService.isLoaded()" nbButton status="info" (click)="addNewEvolution(); blurActiveElement();">Add Evolution</button>
     </nb-card-body>
 </nb-card>
 <ng-template #wordsPopover>

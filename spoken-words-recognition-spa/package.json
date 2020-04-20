@@ -30,6 +30,7 @@
     "echarts": "^4.7.0",
     "eva-icons": "^1.1.2",
     "file-saver": "^2.0.2",
+    "gpu.js": "^2.9.0",
     "guid-typescript": "^1.0.9",
     "jwt-decode": "^2.2.0",
     "leaflet": "^1.6.0",

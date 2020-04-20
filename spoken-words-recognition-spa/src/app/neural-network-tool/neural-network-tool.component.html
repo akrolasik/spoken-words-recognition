@@ -2,19 +2,10 @@
     <nb-layout-column>
         <div class="row">
             <div class="col-xxl-7">
-                <app-evolution-tile *ngFor="let evolution of evolutions" 
-                    [evolution]="evolution" 
-                    (deleted)="delete(evolution)" 
-                    (isProcessing)="onIsProcessingChange($event)">
-                </app-evolution-tile>
+                <app-evolution-tile *ngFor="let evolution of evolutions; trackBy: trackById" [evolution]="evolution"></app-evolution-tile>
             </div>
             <div class="col-xxl-5">
-                <app-add-new-evolution 
-                    [words]="words" 
-                    [accents]="accents" 
-                    [modifications]="modifications" 
-                    (newEvolution)="onNewEvolution($event)">
-                </app-add-new-evolution>
+                <app-add-new-evolution></app-add-new-evolution>
             </div>
         </div>
     </nb-layout-column>

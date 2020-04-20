@@ -48,8 +48,6 @@ export class CountryOrdersMapComponent implements OnDestroy {
     ])
       .pipe(takeWhile(() => this.alive))
       .subscribe(([cords, config]: [any, any]) => {
-        console.log(config);
-
         this.currentTheme = {
           countryBorderWidth: '1',
           countryFillColor: config.variables.bg4,
@@ -110,7 +108,6 @@ export class CountryOrdersMapComponent implements OnDestroy {
   }
 
   private highlightFeature(featureLayer) {
-    console.log(featureLayer);
     if (featureLayer) {
       featureLayer.setStyle({
         weight: this.currentTheme.hoveredCountryBorderWidth,
