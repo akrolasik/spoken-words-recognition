@@ -11,5 +11,6 @@ namespace NeuralNetwork.API.Config
         public NetworkConfig NetworkConfig { get; set; }
         public TrainingConfig TrainingConfig { get; set; }
         public GradientConfig GradientConfig { get; set; }
+        public InputConfig InputConfig { get; set; }
     }
 }

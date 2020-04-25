@@ -1,0 +1,22 @@
+extern "C" __global__ void
+calcGradientBias(
+	float *difference,
+    float *biasGradient,  
+	int weightRowCount,
+	int inputColumnCount,
+	float gradientFactor)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+	if (index < weightRowCount)
+	{
+		float sum = 0.0f;
+
+		for(int i = 0; i < inputColumnCount; i++)
+		{
+			sum += difference[i * weightRowCount + index];
+		}
+
+		biasGradient[index] = sum / inputColumnCount * gradientFactor;
+	}
+}

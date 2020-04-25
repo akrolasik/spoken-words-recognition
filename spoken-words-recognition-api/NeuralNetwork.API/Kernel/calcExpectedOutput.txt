@@ -1,0 +1,28 @@
+extern "C" __global__ void
+calcExpectedOutput(
+	float *difference,
+    float *weight, 
+    float *temp, 
+	int weightRowCount,
+	int expectedRowCount,
+	int expectedColumnCount,
+	float factor)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	int expectedParamsCount = expectedRowCount * expectedColumnCount;
+	
+	if (index < expectedParamsCount)
+	{
+		int y = index % expectedRowCount;
+		int x = index / expectedRowCount;
+
+		float sum = 0.0f; 
+
+		for (int r = 0; r < weightRowCount; r++)
+		{
+			sum += weight[y * weightRowCount + r] * difference[x * weightRowCount + r];
+		}
+
+		temp[index] = sum * factor;
+	}
+}

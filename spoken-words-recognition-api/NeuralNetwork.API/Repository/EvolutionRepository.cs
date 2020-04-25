@@ -39,7 +39,7 @@ namespace NeuralNetwork.API.Repository
 
             SaveEvolutions();
 
-            _ = Task.Run(() => new Evolution(evolutionConfig));
+            _ = Task.Run(() => new Evolution(evolutionConfig)).ContinueWith(async evolution => await evolution.Result.Save());
         }
 
         public void DeleteEvolution(Guid id)
@@ -86,13 +86,13 @@ namespace NeuralNetwork.API.Repository
             }
         }
 
-        public NeuralNetworkStatistics GetNeuralNetworkStatistics(Guid id)
+        public List<NeuralNetworkStatistics> GetNeuralNetworkStatistics(Guid id)
         {
             try
             {
                 return _currentEvolution.Statistics;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }

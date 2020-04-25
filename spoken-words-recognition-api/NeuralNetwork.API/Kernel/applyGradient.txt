@@ -1,0 +1,13 @@
+extern "C" __global__ void
+applyGradient(
+    float *base, 
+    float *gradient, 
+	int count)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	
+	if (index < count)
+	{
+		base[index] += gradient[index];
+	}
+}

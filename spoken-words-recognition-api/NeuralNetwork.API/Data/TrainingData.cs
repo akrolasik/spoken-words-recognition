@@ -14,13 +14,12 @@ namespace NeuralNetwork.API.Data
 
         public int OutputIndex;
         public Recording Recording;
-        public Matrix<double> ExpectedOutput;
+        public Matrix<float> ExpectedOutput;
 
-        private Matrix<double> _input;
+        private Matrix<float> _input;
 
-        public Matrix<double> Input()
+        public Matrix<float> Input()
         {
-
             if (_input == null)
             {
                 lock (_dataProvider)

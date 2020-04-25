@@ -16,20 +16,31 @@ export class NetworkConfig {
   public outputCount: number;
 }
 
-export class TrainingConfig {
-  public wordSetSize: number;
+export class InputConfig {
   public packageFileName: string;
-  public iterationLimit?: number;
   public wordsIncluded: string[];
   public accentsIncluded: string[];
   public modificationsIncluded: string[];
 }
 
-export class SelectionConfig {
+export class TrainingConfig {
+  public useGpu: boolean;
+  public wordSetSize: number;
+  public calculationThreadCount: number;
+  public populationSize: number;
+  public savingThreadCount: number;
+  public iterationLimit?: number;
+}
+
+export class GradientConfig {
   public gradientFactor: number;
   public weightGradientFactor: number;
   public biasGradientFactor: number;
   public inputGradientFactor: number;
+}
+
+export class PopulationConfig {
+  public unitCount: number;
 }
 
 export class Aggregation {
@@ -51,7 +62,8 @@ export class EvolutionConfig {
   public isRunning: boolean;
   public trainingConfig: TrainingConfig;
   public networkConfig: NetworkConfig;
-  public gradientConfig: SelectionConfig;
+  public gradientConfig: GradientConfig;
+  public inputConfig: InputConfig;
 }
 
 @Pipe({
@@ -61,7 +73,7 @@ export class WorkDayPipe implements PipeTransform {
  
   transform(totalSeconds: number): string {
     
-    let seconds = totalSeconds % 60;
+    let seconds = Math.floor(totalSeconds % 60);
     let minutes = Math.floor(totalSeconds / 60);
     let hours = Math.floor(totalSeconds / 3600);
     
@@ -88,7 +100,7 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
 
   @Input() evolution: EvolutionConfig;
 
-  statistics: EvolutionStatistics;
+  statistics: EvolutionStatistics[];
   recordings: Recording[];
   totalComputingTime: string;
 
@@ -124,37 +136,43 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
           yAxis: {
               type: 'log'
           },
-          series: [{
-              data: [],
-              type: 'line',
-              smooth: true,
-              itemStyle: {
-                opacity: 0
-              },
-              lineStyle: {
-                color: 'red'
-              }
-          }]
+          series: []
         };
 
-        for(let i = 0; i < statistics.cost.length; i++) {
-          this.costChartOptions.series[0].data.push([Math.pow(2, i), statistics.cost[i]]);
-        }
+        for(let s = 0; s < 1; s++) { //statistics.length
 
+          let serie = {
+            data: [],
+            type: 'line',
+            smooth: true,
+            itemStyle: {
+              opacity: 0
+            },
+            lineStyle: {
+              color: 'red'
+            }
+          };
+
+          for(let i = 0; i < statistics[s].cost.length; i++) {
+            serie.data.push([Math.pow(2, i), statistics[s].cost[i]]);
+          }
+
+          this.costChartOptions.series.push(serie);
+        }
       })
     }, 1000);
   }
 
   words() {
-    return this.evolution.trainingConfig.wordsIncluded.join('\n');
+    return this.evolution.inputConfig.wordsIncluded.join('\n');
   }
 
   accents() {
-    return this.evolution.trainingConfig.accentsIncluded.join('\n');
+    return this.evolution.inputConfig.accentsIncluded.join('\n');
   }
 
   modifications() {
-    return this.evolution.trainingConfig.modificationsIncluded.join('\n');
+    return this.evolution.inputConfig.modificationsIncluded.join('\n');
   }
 
   async delete() {

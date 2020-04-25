@@ -1,0 +1,27 @@
+extern "C" __global__ void
+calcGradientWeight(
+	float *difference,
+    float *input, 
+    float *weightGradient, 
+	int weightRowCount,
+	int weightColumnCount,
+	int inputColumnCount,
+	float gradientFactor)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	int weightParamsCount = weightRowCount * weightColumnCount;
+	
+	if (index < weightParamsCount)
+	{
+		int y = index % weightRowCount;
+        int x = index / weightRowCount;
+		float sum = 0.0f;
+
+		for(int i = 0; i < inputColumnCount; i++)
+		{
+			sum += difference[i * weightRowCount + y] * input[i * weightColumnCount + x];
+		}
+		
+		weightGradient[index] = sum / inputColumnCount * gradientFactor;
+	}
+}

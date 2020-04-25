@@ -49,7 +49,7 @@ namespace NeuralNetwork.API.Controllers
 
         [HttpGet]
         [Route("statistics/{id}")]
-        public ActionResult<NeuralNetworkStatistics> GetEvolutionStatistics([FromRoute] Guid id)
+        public ActionResult<List<NeuralNetworkStatistics>> GetEvolutionStatistics([FromRoute] Guid id)
         {
             return Ok(_evolutionRepository.GetNeuralNetworkStatistics(id));
         }

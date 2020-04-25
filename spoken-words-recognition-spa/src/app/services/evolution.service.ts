@@ -29,8 +29,8 @@ export class EvolutionService {
     })});
   }
 
-  public getStatistics(id: string): Observable<EvolutionStatistics> {
-    return this.http.get<EvolutionStatistics>(`${this.baseUrl}/statistics/${id}`, { headers: new HttpHeaders({
+  public getStatistics(id: string): Observable<EvolutionStatistics[]> {
+    return this.http.get<EvolutionStatistics[]>(`${this.baseUrl}/statistics/${id}`, { headers: new HttpHeaders({
       'Content-Type': 'application/json',
     })});
   }

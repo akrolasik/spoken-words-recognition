@@ -5,12 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ManagedCuda;
-using ManagedCuda.BasicTypes;
 using MathNet.Numerics.LinearAlgebra;
 using NeuralNetwork.API.Config;
+using NeuralNetwork.API.Cuda;
 using NeuralNetwork.API.Data;
-using NeuralNetwork.API.Extensions;
 using NeuralNetwork.API.Statistics;
 using Newtonsoft.Json;
 
@@ -19,70 +17,110 @@ namespace NeuralNetwork.API.Network
     public class Evolution
     {
         public readonly EvolutionConfig Config;
-        public readonly NeuralNetwork Network;
-        public readonly NeuralNetworkStatistics Statistics;
+        public readonly List<NeuralNetwork> Units;
+        public readonly List<NeuralNetworkStatistics> Statistics;
 
         private readonly DataProvider _dataProvider;
 
         private CancellationTokenSource _cancellationTokenSource;
-        private NeuralNetworkResult _lastResult;
-        private DateTime _lastSavingTime = DateTime.UtcNow;
+        
+        private CudaClient _cudaClient;
+        private bool _saving;
 
         private string BasePath => $"temp/evolutions/{Config.Id}";
+        private string TempPath => $"temp/evolutions/{Config.Id}_temp";
+        private string BackupPath => $"temp/evolutions/{Config.Id}_backup";
 
         public Evolution(EvolutionConfig evolutionConfig)
         {
             Config = evolutionConfig;
-            Network = LoadNetwork();
-            Statistics = LoadStatistics();
-            Config.IsRunning = false;
+
+            if (Directory.Exists(BasePath))
+            {
+                try
+                {
+                    Units = LoadUnits(BasePath);
+                    Statistics = LoadStatistics(BasePath);
+                }
+                catch (Exception)
+                {
+                    if (Directory.Exists(BackupPath))
+                    {
+                        Units = LoadUnits(BackupPath);
+                        Statistics = LoadStatistics(BackupPath);
+                    }
+                    else
+                    {
+                        throw new Exception("Corrupted data");
+                    }
+                }
+            }
+            else
+            {
+                Units = Enumerable.Range(0, Config.TrainingConfig.PopulationSize).Select(x => new NeuralNetwork(Config)).ToList();
+                Statistics = Enumerable.Range(0, Config.TrainingConfig.PopulationSize).Select(x => new NeuralNetworkStatistics()).ToList();
+            }
 
             _dataProvider = new DataProvider(evolutionConfig);
         }
 
-        private NeuralNetwork LoadNetwork()
+        private List<NeuralNetwork> LoadUnits(string path)
         {
-            if (!File.Exists($"{BasePath}/layer{0}.bin"))
+            var units = new List<NeuralNetwork>();
+
+            var unitIndices = Enumerable.Range(0, Config.TrainingConfig.PopulationSize).ToList();
+
+            var tasks = Enumerable.Range(0, Config.TrainingConfig.CalculationThreadCount).Select(x => Task.Run(() =>
             {
-                return new NeuralNetwork(Config);
-            }
+                while (true)
+                {
+                    int unitIndex;
 
-            var layers = new List<MatrixFunction>();
+                    lock (unitIndices)
+                    {
+                        if (unitIndices.Count > 0)
+                        {
+                            unitIndex = unitIndices[0];
+                            unitIndices.RemoveAt(0);
+                        }
+                        else return;
+                    }
 
-            for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
-            {
-                var weightWidth = Config.NetworkConfig.GetLayerWeightWidth(l);
-                var weightHeight = Config.NetworkConfig.GetLayerWeightHeight(l);
-                var weightParamCount = weightWidth * weightHeight;
+                    var layers = new List<MatrixFunction>();
 
-                using var fileStream = new FileStream($"{BasePath}/layer{l}.bin", FileMode.Open);
-                using var stream = new BinaryReader(fileStream);
-                var weightBytes = stream.ReadBytes(weightParamCount * 8);
-                var biasBytes = stream.ReadBytes(weightHeight * 8);
+                    for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
+                    {
+                        var weightWidth = Config.NetworkConfig.GetLayerWeightWidth(l);
+                        var weightHeight = Config.NetworkConfig.GetLayerWeightHeight(l);
+                        var weightParamCount = weightWidth * weightHeight;
 
-                var weight = Enumerable.Range(0, weightParamCount).Select(x => BitConverter.ToDouble(weightBytes, x * 8)).ToArray();
-                var bias = Enumerable.Range(0, weightHeight).Select(x => BitConverter.ToDouble(biasBytes, x * 8)).ToArray();
+                        using var fileStream = new FileStream($"{path}/unit{unitIndex}/layer{l}.bin", FileMode.Open);
+                        using var stream = new BinaryReader(fileStream);
+                        var weightBytes = stream.ReadBytes(weightParamCount * 4);
+                        var biasBytes = stream.ReadBytes(weightHeight * 4);
 
-                var weightMatrix = Matrix<double>.Build.Dense(weightHeight, weightWidth, weight);
-                var biasMatrix = Matrix<double>.Build.Dense(weightHeight, 1, bias);
+                        var weight = Enumerable.Range(0, weightParamCount).Select(x => BitConverter.ToSingle(weightBytes, x * 4)).ToArray();
+                        var bias = Enumerable.Range(0, weightHeight).Select(x => BitConverter.ToSingle(biasBytes, x * 4)).ToArray();
 
-                layers.Add(new MatrixFunction(weightMatrix, biasMatrix));
-            }
+                        var weightMatrix = Matrix<float>.Build.Dense(weightHeight, weightWidth, weight);
+                        var biasMatrix = Matrix<float>.Build.Dense(weightHeight, 1, bias);
 
-            return new NeuralNetwork(Config, layers);
+                        layers.Add(new MatrixFunction(weightMatrix, biasMatrix));
+                    }
+
+                    units.Add(new NeuralNetwork(Config, layers));
+                }
+            })).ToArray();
+
+            Task.WaitAll(tasks);
+
+            return units;
         }
 
-        private NeuralNetworkStatistics LoadStatistics()
+        private List<NeuralNetworkStatistics> LoadStatistics(string path)
         {
-            var path = $"{BasePath}/statistics.json";
-
-            if (!File.Exists(path))
-            {
-                return new NeuralNetworkStatistics(Config);
-            }
-
-            var json = File.ReadAllText(path);
-            return JsonConvert.DeserializeObject<NeuralNetworkStatistics>(json);
+            var json = File.ReadAllText($"{path}/statistics.json");
+            return JsonConvert.DeserializeObject<List<NeuralNetworkStatistics>>(json);
         }
 
         public static void Remove(EvolutionConfig config)
@@ -95,37 +133,81 @@ namespace NeuralNetwork.API.Network
             }
         }
 
-        private void Save(bool force = false)
+        public async Task Save()
         {
-            if (force || _lastSavingTime + TimeSpan.FromMinutes(5) < DateTime.UtcNow)
-            {
-                Directory.CreateDirectory(BasePath);
-                SaveNetwork();
-                SaveStatistics();
+            if (_saving) return;
 
-                _lastSavingTime = DateTime.UtcNow;
-            }
+            _saving = true;
+
+
+            if (Directory.Exists(BackupPath))
+                Directory.Delete(BackupPath);
+
+            if (Directory.Exists(TempPath))
+                Directory.Delete(TempPath);
+
+            Directory.CreateDirectory(TempPath);
+
+            await SaveUnits();
+            await SaveStatistics();
+
+            if (Directory.Exists(BasePath))
+                Directory.Move(BasePath, BackupPath);
+
+            Directory.Move(TempPath, BasePath);
+
+            if (Directory.Exists(BackupPath))
+                Directory.Delete(BackupPath);
+
+            _saving = false;
         }
 
-        private void SaveStatistics()
+        private async Task SaveStatistics()
         {
             var json = JsonConvert.SerializeObject(Statistics);
-            File.WriteAllText($"{BasePath}/statistics.json", json);
+            await File.WriteAllTextAsync($"{TempPath}/statistics.json", json);
         }
 
-        private void SaveNetwork()
+        private async Task SaveUnits()
         {
-            for (var l = 0; l < Network.Layers.Count; l++)
-            {
-                var weightArray = Network.Layers[l].Weight.ToColumnMajorArray();
-                var biasArray = Network.Layers[l].Bias.ToColumnMajorArray();
-                var byteArray = weightArray.SelectMany(BitConverter.GetBytes).ToArray().ToList();
-                byteArray.AddRange(biasArray.SelectMany(BitConverter.GetBytes).ToArray());
+            var unitIndices = Enumerable.Range(0, Config.TrainingConfig.PopulationSize).ToList();
 
-                using var fileStream = new FileStream($"{BasePath}/layer{l}.bin", FileMode.Create);
-                using var stream = new BinaryWriter(fileStream);
-                stream.Write(byteArray.ToArray());
-            }
+            var tasks = Enumerable.Range(0, Config.TrainingConfig.SavingThreadCount).Select(x => Task.Run(() =>
+            {
+                while (true)
+                {
+                    int unitIndex;
+
+                    lock (unitIndices)
+                    {
+                        if (unitIndices.Count > 0)
+                        {
+                            unitIndex = unitIndices[0];
+                            unitIndices.RemoveAt(0);
+                        }
+                        else return;
+                    }
+
+                    var unitPath = $"{TempPath}/unit{unitIndex}";
+                    if (!Directory.Exists(unitPath))
+                    {
+                        Directory.CreateDirectory(unitPath);
+                    }
+
+                    for (var l = 0; l < Units[unitIndex].Layers.Count; l++)
+                    {
+                        var weightArray = Units[unitIndex].Layers[l].Weight.ToColumnMajorArray();
+                        var biasArray = Units[unitIndex].Layers[l].Bias.ToColumnMajorArray();
+                        var byteArray = weightArray.SelectMany(BitConverter.GetBytes).ToArray().ToList();
+                        byteArray.AddRange(biasArray.SelectMany(BitConverter.GetBytes).ToArray());
+                        using var fileStream = new FileStream($"{unitPath}/layer{l}.bin", FileMode.Create);
+                        using var stream = new BinaryWriter(fileStream);
+                        stream.Write(byteArray.ToArray());
+                    }
+                }
+            }));
+
+            await Task.WhenAll(tasks);
         }
 
         public async Task StartCalculation()
@@ -134,39 +216,130 @@ namespace NeuralNetwork.API.Network
 
             Config.IsRunning = true;
 
-            while (!_cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                if (Statistics.CurrentIteration > 0)
-                {
-                    ApplyGradient();
-                }
+            _cudaClient = new CudaClient(Config);
 
-                var dataSet = _dataProvider.GetRandomDataSet();
-                await Calculate(dataSet);
-                Save();
+            ShuffleData();
+
+            var maintenance = Task.Run(async () =>
+            {
+                while (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                    //await Save();
+
+                    //if (!_cancellationTokenSource.IsCancellationRequested)
+                    //{
+                    //    ShuffleData();
+                    //}
+                }
+            });
+
+            lock (_cudaClient)
+            {
+                foreach (var unit in Units)
+                {
+                    unit.PrepareCuda(_cudaClient);
+                }
             }
 
-            Save(true);
+            while (!_cancellationTokenSource.IsCancellationRequested)
+            {
+                //if (Config.TrainingConfig.IterationCount == Statistics.CurrentIteration)
+                //{
+                //    Config.TrainingConfig.IterationCount = null;
+                //    _cancellationTokenSource.Cancel();
+                //    break;
+                //}
 
-            Config.IsRunning = false;
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                lock (_cudaClient)
+                {
+                    Calculate();
+                }
+
+                stopwatch.Stop();
+                UpdateStatistics(stopwatch.Elapsed);
+            }
+
+            await maintenance.ContinueWith(async _ =>
+            {
+                lock (_cudaClient)
+                {
+                    _cudaClient.Dispose();
+                }
+
+                await Save();
+                Config.IsRunning = false;
+            });
         }
 
-        private async Task Calculate(List<TrainingData> dataSet)
+        private void ShuffleData()
         {
-            const int taskCount = 10;
-            var wordsPerTask = dataSet.Count / taskCount;
+            var randomSet = _dataProvider.GetRandomDataSet();
+            var inputMatrices = randomSet.Select(x => x.Input()).ToList();
+            var outputMatrices = randomSet.Select(x => x.ExpectedOutput).ToList();
 
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
+            lock (_cudaClient)
+            {
+                _cudaClient.Input = new ParallelMatrices(1, inputMatrices.Count, inputMatrices);
+                _cudaClient.ExpectedOutput = new ParallelMatrices(1, inputMatrices.Count, outputMatrices);
+            }
+        }
 
-            var tasks = Enumerable.Range(0, taskCount).Select(x => Task.Run(() => dataSet
-                .Skip(x * wordsPerTask).Take(wordsPerTask).ToList()
-                .Select(Network.Calculate).ToList())).ToArray();
+        private void Synchronize()
+        {
+            for (var i = 0; i < Units.Count; i++)
+            {
+                Units[i].Synchronize();
+            }
+        }
 
-            await Task.WhenAll(tasks);
-            var results = tasks.SelectMany(x => x.Result).ToList();
+        private void Calculate()
+        {
+            for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
+            {
+                for(var i = 0; i < Units.Count; i++)
+                {
+                    Units[i].CalcNeuronValues(_cudaClient, l);
+                }
 
-            UpdateStatistics(dataSet, results, stopwatch);
+                Synchronize();
+            }
+
+            for (var l = Config.NetworkConfig.HiddenLayersNeuronCount.Length; l >= 0; l--)
+            {
+                for (var i = 0; i < Units.Count; i++)
+                {
+                    Units[i].CalcExpectedDifference(_cudaClient, l);
+                }
+
+                Synchronize();
+
+                for (var i = 0; i < Units.Count; i++)
+                {
+                    Units[i].CalcGradientWeight(_cudaClient, l);
+                    Units[i].CalcGradientBias(_cudaClient, l);
+
+                    if (l > 0)
+                    {
+                        Units[i].CalcExpectedOutput(_cudaClient, l);
+                    }
+                }
+
+                Synchronize();
+            }
+
+            for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
+            {
+                for (var i = 0; i < Units.Count; i++)
+                {
+                    Units[i].ApplyGradient(_cudaClient, l);
+                }
+            }
+
+            Synchronize();
         }
 
         public void CancelCalculation()
@@ -174,46 +347,19 @@ namespace NeuralNetwork.API.Network
             _cancellationTokenSource.Cancel();
         }
 
-        private void ApplyGradient()
+        private void UpdateStatistics(TimeSpan calculationTime)
         {
-            for (var i = 0; i < Network.Layers.Count; i++)
+            for(var i = 0; i < Units.Count; i++)
             {
-                Network.Layers[i].Weight += _lastResult.Gradient.Layers[i].Weight * Config.GradientConfig.GradientFactor;
-                Network.Layers[i].Bias += _lastResult.Gradient.Layers[i].Bias * Config.GradientConfig.GradientFactor;
-            }
-        }
+                Statistics[i].CurrentIteration++;
+                Statistics[i].TotalComputingTimeInSeconds += (float)calculationTime.TotalSeconds;
 
-        private void UpdateStatistics(List<TrainingData> dataSet, List<NeuralNetworkResult> results, Stopwatch stopwatch)
-        {
-            _lastResult = results.Average();
-
-            for (var setIndex = 0; setIndex < dataSet.Count; setIndex++)
-            {
-                var outputStats = Statistics.Output[dataSet[setIndex].OutputIndex];
-
-                for (var outputIndex = 0; outputIndex < outputStats.Length; outputIndex++)
+                if (Math.Abs(Math.Pow(Statistics[i].CurrentIteration + 1, 1.0 / (Statistics[i].Cost.Count + 1)) - 2.0) < 1.0E-5f)
                 {
-                    outputStats[outputIndex].Min =
-                        Math.Min(outputStats[outputIndex].Min, results[setIndex].Output[outputIndex]);
-
-                    outputStats[outputIndex].Max =
-                        Math.Min(outputStats[outputIndex].Max, results[setIndex].Output[outputIndex]);
-
-                    outputStats[outputIndex].Avg =
-                        (outputStats[outputIndex].Avg * Statistics.Cost.Count + results[setIndex].Output[outputIndex]) /
-                        (Statistics.Cost.Count + 1);
+                    var cost = Units[i].CalcCost(_cudaClient);
+                    Statistics[i].Cost.Add(cost.Average());
                 }
             }
-
-            
-            Statistics.CurrentIteration++;
-
-            if (Math.Abs(Math.Pow((Statistics.CurrentIteration + 1), 1.0 / (Statistics.Cost.Count + 1)) - 2.0) < 0.0001)
-            {
-                Statistics.Cost.Add(_lastResult.Cost);
-            }
-
-            //Statistics.TotalComputingTimeInSeconds += (double)stopwatch.Elapsed.TotalSeconds;
         }
     }
 }

@@ -2,8 +2,8 @@ namespace NeuralNetwork.API.Statistics
 {
     public class Aggregation
     {
-        public double Max;
-        public double Min;
-        public double Avg;
+        public float Max;
+        public float Min;
+        public float Avg;
     }
 }

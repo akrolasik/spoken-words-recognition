@@ -1,0 +1,14 @@
+extern "C" __global__ void
+calcExpectedDif(
+    float *expected, 
+    float *actual, 
+    float *output, 
+	int count)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	
+	if (index < count)
+	{
+		output[index] = expected[index] - actual[index];
+	}
+}

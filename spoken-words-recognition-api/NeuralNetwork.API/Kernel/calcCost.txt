@@ -1,0 +1,24 @@
+extern "C" __global__ void
+calcCost(
+    float *expected, 
+    float *actual, 
+    float *cost, 
+	int expectedRowCount,
+	int count)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	
+	if (index < count)
+	{
+		float sum = 0.0f;
+		float temp;
+
+		for(int i = 0; i < expectedRowCount; i++) 
+		{
+			temp = expected[index * expectedRowCount + i] - actual[index * expectedRowCount + i];
+			sum += temp * temp;
+		}
+
+		cost[index] = sum;
+	}
+}

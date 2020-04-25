@@ -2,16 +2,18 @@
     <nb-card-header>
         {{evolution.name}}
         <nb-toggle 
-                status="info" 
-                style="transform: translateY(10px) scale(0.8); margin: -15px 0 -5px 10px;"
-                [checked]="evolution.isRunning" 
-                (change)="onStateChange($event)">
-            </nb-toggle>
+            status="info" 
+            style="transform: translateY(10px) scale(0.8); margin: -15px 0 -5px 10px;"
+            [checked]="evolution.isRunning" 
+            (change)="onStateChange($event)">
+        </nb-toggle>
+        <span *ngIf="statistics != null && statistics.length > 0" style="margin-left: 10px;">
+            <span style="font-weight: normal; font-size: 15px;">Total time: <b>{{statistics[0].totalComputingTimeInSeconds | time}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iteration: <b>{{statistics[0].currentIteration}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./s: <b>{{statistics[0].currentIteration / statistics[0].totalComputingTimeInSeconds | number: '1.0-0'}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./hour: <b>{{statistics[0].currentIteration / statistics[0].totalComputingTimeInSeconds * 3600 | number: '1.0-0'}}</b></span>
+        </span>
         <div style="float: right; margin: -5px 0 -15px 0;">
-            <!-- <span style="margin-left: 10px;">
-                <span style="font-weight: normal; font-size: 15px;">Total time: <b>{{statistics.totalComputingTimeInSeconds | time}}</b></span>
-                <span style="font-weight: normal; font-size: 15px;">Iteration: <b>{{statistics.currentIteration | time}}</b></span>
-            </span> -->
             <button 
                 nbButton 
                 status="danger" 
@@ -53,27 +55,23 @@
                                 </span>
                                 <div style="height: 20px"></div>
                                 <span>
-                                    <b>Training</b>
+                                    <b>Input</b>
+                                </span>
+                                <div style="height: 10px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Package name: <b>{{evolution.inputConfig.packageFileName}}</b>
                                 </span>
                                 <div style="height: 5px"></div>
                                 <span style="margin: 0 0 0 10px;" [nbTooltip]="words()" nbTooltipPlacement="right">
-                                    Words included in training: <b>{{evolution.trainingConfig.wordsIncluded.length}}</b>
+                                    Words included in training: <b>{{evolution.inputConfig.wordsIncluded.length}}</b>
                                 </span>
                                 <div style="height: 5px"></div>
                                 <span style="margin: 0 0 0 10px;" [nbTooltip]="accents()" nbTooltipPlacement="right">
-                                    Accents included in training: <b>{{evolution.trainingConfig.accentsIncluded.length}}</b>
+                                    Accents included in training: <b>{{evolution.inputConfig.accentsIncluded.length}}</b>
                                 </span>
                                 <div style="height: 5px"></div>
                                 <span style="margin: 0 0 0 10px;" [nbTooltip]="modifications()" nbTooltipPlacement="right">
-                                    Modifications included in training: <b>{{evolution.trainingConfig.modificationsIncluded.length}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Words set size: <b>{{evolution.trainingConfig.wordSetSize}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Iteration limit: <b>{{evolution.trainingConfig.iterationLimit}}</b>
+                                    Modifications included in training: <b>{{evolution.inputConfig.modificationsIncluded.length}}</b>
                                 </span>
                                 <div style="height: 20px"></div>
                                 <span>
@@ -102,6 +100,34 @@
                                 <div style="height: 20px"></div>
                             </div>
                             <div class="col-6">
+                                <span>
+                                    <b>Training</b>
+                                </span>
+                                <div style="height: 10px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Use GPU in calculation: <b>{{evolution.trainingConfig.useGpu}}</b>
+                                </span>
+                                <div style="height: 5px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Words set size: <b>{{evolution.trainingConfig.wordSetSize}}</b>
+                                </span>
+                                <div style="height: 5px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Calculation thread count: <b>{{evolution.trainingConfig.calculationThreadCount}}</b>
+                                </span>
+                                <div style="height: 5px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Saving thread count: <b>{{evolution.trainingConfig.populationSize}}</b>
+                                </span>
+                                <div style="height: 5px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Population size: <b>{{evolution.trainingConfig.savingThreadCount}}</b>
+                                </span>
+                                <div style="height: 5px"></div>
+                                <span style="margin: 0 0 0 10px;">
+                                    Iteration limit: <b>{{evolution.trainingConfig.iterationLimit}}</b>
+                                </span>
+                                <div style="height: 20px"></div>
                                 <span>
                                     <b>Gradient</b>
                                 </span>

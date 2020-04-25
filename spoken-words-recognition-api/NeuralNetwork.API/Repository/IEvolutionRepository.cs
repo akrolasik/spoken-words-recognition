@@ -13,6 +13,6 @@ namespace NeuralNetwork.API.Repository
         List<EvolutionConfig> GetEvolutions();
         Task StartEvolution(Guid id);
         void StopRunningEvolution();
-        NeuralNetworkStatistics GetNeuralNetworkStatistics(Guid id);
+        List<NeuralNetworkStatistics> GetNeuralNetworkStatistics(Guid id);
     }
 }

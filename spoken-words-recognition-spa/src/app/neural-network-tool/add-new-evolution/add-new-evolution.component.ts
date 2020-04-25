@@ -59,7 +59,13 @@ export class AddNewEvolutionComponent implements OnInit {
         outputCount: 25
       },
       trainingConfig: {
-        wordSetSize: 10,
+        useGpu: true,
+        wordSetSize: 25,
+        calculationThreadCount: 10,
+        savingThreadCount: 10,
+        populationSize: 10,
+      },
+      inputConfig: {
         packageFileName: null,
         wordsIncluded: [],
         accentsIncluded: [],
@@ -122,12 +128,12 @@ export class AddNewEvolutionComponent implements OnInit {
   }
 
   async addNewEvolution() {
-    this.evolution.trainingConfig.wordsIncluded = this.wordsIncluded.filter(x => x.selected).map(x => x.word);
-    this.evolution.trainingConfig.accentsIncluded = this.accentsIncluded.filter(x => x.selected).map(x => x.accent);
-    this.evolution.trainingConfig.modificationsIncluded = this.modificationsIncluded.filter(x => x.selected).map(x => x.modification);
-    this.evolution.trainingConfig.packageFileName = this.dataService.loadedFileName;
+    this.evolution.inputConfig.wordsIncluded = this.wordsIncluded.filter(x => x.selected).map(x => x.word);
+    this.evolution.inputConfig.accentsIncluded = this.accentsIncluded.filter(x => x.selected).map(x => x.accent);
+    this.evolution.inputConfig.modificationsIncluded = this.modificationsIncluded.filter(x => x.selected).map(x => x.modification);
+    this.evolution.inputConfig.packageFileName = this.dataService.loadedFileName;
 
-    this.evolution.networkConfig.outputCount = this.evolution.trainingConfig.wordsIncluded.length;
+    this.evolution.networkConfig.outputCount = this.evolution.inputConfig.wordsIncluded.length;
 
     console.log(this.evolution);
     await this.evolutionService.addEvolution(this.evolution);

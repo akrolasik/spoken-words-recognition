@@ -35,7 +35,7 @@ namespace NeuralNetwork.API.Data
                 Directory.CreateDirectory("temp/recordings");
             }
 
-            using var archive = ZipFile.OpenRead($"{DefaultDirectory}/{evolutionConfig.TrainingConfig.PackageFileName}");
+            using var archive = ZipFile.OpenRead($"{DefaultDirectory}/{evolutionConfig.InputConfig.PackageFileName}");
             var indexEntry = archive.Entries.First(x => x.Name == "index.tsv");
 
             using var stream = new StreamReader(indexEntry.Open(), Encoding.Default);
@@ -49,7 +49,7 @@ namespace NeuralNetwork.API.Data
                 return new TrainingData(this)
                 {
                     OutputIndex = outputIndex,
-                    ExpectedOutput = Matrix<double>.Build.Dense(words.Count, 1, (y, _) => outputIndex == y ? 1 : 0),
+                    ExpectedOutput = Matrix<float>.Build.Dense(words.Count, 1, (y, _) => outputIndex == y ? 1 : 0),
                     Recording = recording,
                 };
             }).ToList();
@@ -97,7 +97,7 @@ namespace NeuralNetwork.API.Data
             return await response.Result.Content.ReadAsStringAsync();
         }
 
-        public async Task<Matrix<double>> GetInput(Recording recording)
+        public async Task<Matrix<float>> GetInput(Recording recording)
         {
             var inputResolution = _evolutionConfig.NetworkConfig.InputResolution;
             var inputCount = _evolutionConfig.NetworkConfig.InputCount;
@@ -108,17 +108,17 @@ namespace NeuralNetwork.API.Data
 
             // var tsv = string.Join('\n', frequencies.Select(x => string.Join('\t', x.Data.Select(y => (int)y))));
 
-            var blurred = Matrix<double>.Build.Dense(frequenciesRows, frequenciesColumns,
+            var blurred = Matrix<float>.Build.Dense(frequenciesRows, frequenciesColumns,
                 (y, x) => Blur(frequencies, y, x, 1));
 
             // var blurTsv = string.Join('\n', Enumerable.Range(0, blurred.RowCount).Select(x => string.Join('\t', blurred.Row(x).Select(y => y))));
 
-            var downsized = Matrix<double>.Build.Dense(inputResolution.Width, inputResolution.Height,
+            var downsized = Matrix<float>.Build.Dense(inputResolution.Width, inputResolution.Height,
                 (y, x) => Downsize(blurred, frequenciesRows, frequenciesColumns, inputResolution.Width, inputResolution.Height, y, x));
 
             // var downsizedTsv = string.Join('\n', Enumerable.Range(0, downsized.RowCount).Select(x => string.Join('\t', downsized.Row(x).Select(y => y))));
 
-            var result = Matrix<double>.Build.Dense(inputCount, 1, (i, _) =>
+            var result = Matrix<float>.Build.Dense(inputCount, 1, (i, _) =>
             {
                 var y = i / inputResolution.Height;
                 var x = i % inputResolution.Height;
@@ -128,21 +128,21 @@ namespace NeuralNetwork.API.Data
             return result;
         }
 
-        private double GetRandom()
+        private float GetRandom()
         {
             lock (Random)
             {
-                return (double)(Random.NextDouble() * 2 - 1);
+                return (float)(Random.NextDouble() * 2 - 1);
             }
         }
 
-        private double Downsize(Matrix<double> input, int inputHeight, int inputWidth, int outputHeight, int outputWidth, int y, int x)
+        private float Downsize(Matrix<float> input, int inputHeight, int inputWidth, int outputHeight, int outputWidth, int y, int x)
         {
-            var ry = (double)inputHeight / outputHeight;
-            var rx = (double)inputWidth / outputWidth;
+            var ry = (float)inputHeight / outputHeight;
+            var rx = (float)inputWidth / outputWidth;
 
-            var ty = (double)y / outputHeight * inputHeight;
-            var tx = (double)x / outputWidth * inputWidth;
+            var ty = (float)y / outputHeight * inputHeight;
+            var tx = (float)x / outputWidth * inputWidth;
 
             var sum = 0.0;
             var weight = 0.0;
@@ -168,10 +168,10 @@ namespace NeuralNetwork.API.Data
                 }
             }
 
-            return (double)(sum / weight);
+            return (float)(sum / weight);
         }
 
-        private double Blur(FrequenciesChunk[] frequencies, int y0, int x0, int halfSize)
+        private float Blur(FrequenciesChunk[] frequencies, int y0, int x0, int halfSize)
         {
             var sum = 0.0;
             var weight = 0.0;
@@ -189,7 +189,7 @@ namespace NeuralNetwork.API.Data
                 }
             }
 
-            return (double)(sum / weight);
+            return (float)(sum / weight);
         }
     }
 }

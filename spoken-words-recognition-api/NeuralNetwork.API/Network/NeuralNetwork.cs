@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using ManagedCuda;
 using MathNet.Numerics.LinearAlgebra;
 using NeuralNetwork.API.Config;
+using NeuralNetwork.API.Cuda;
 using NeuralNetwork.API.Data;
 
 namespace NeuralNetwork.API.Network
@@ -10,8 +13,30 @@ namespace NeuralNetwork.API.Network
     public class NeuralNetwork
     {
         public List<MatrixFunction> Layers;
+        public List<MatrixFunction> Gradient;
+        public List<float> LayerGradients;
+
+        public List<ParallelMatrices> Output;
+        private List<ParallelMatrices> _temp;
+        private List<ParallelMatrices> _difference;
+
+        private CudaStream _cuda;
+
+        public CudaStream Cuda
+        {
+            get
+            {
+                if (_cuda == null)
+                {
+                    _cuda = new CudaStream();
+                }
+
+                return _cuda;
+            }
+        }
 
         private readonly EvolutionConfig _evolutionConfig;
+        
 
         public NeuralNetwork(EvolutionConfig evolutionConfig)
         {
@@ -27,100 +52,265 @@ namespace NeuralNetwork.API.Network
             {
                 Layers.Add(new MatrixFunction(dimensions[i + 1], dimensions[i]));
             }
+
+            LayerGradients = Enumerable.Range(0, Layers.Count).Select(GetLayerGradient).ToList();
         }
 
         public NeuralNetwork(EvolutionConfig evolutionConfig, List<MatrixFunction> layers)
         {
             _evolutionConfig = evolutionConfig;
             Layers = layers;
+
+            LayerGradients = Enumerable.Range(0, Layers.Count).Select(GetLayerGradient).ToList();
         }
 
-        public NeuralNetworkResult Calculate(TrainingData trainingData)
+        public void PrepareCuda(CudaClient cuda)
         {
-            var neuronValues = new List<Matrix<double>>();
+            Output = Layers.Select(layer => new ParallelMatrices(1, cuda.Input.ColumnCount, 
+                (y, x) => Matrix<float>.Build.Dense(layer.Weight.RowCount, 1))).ToList();
 
-            for (var i = 0; i < Layers.Count; i++)
+            _temp = Enumerable.Range(0, Layers.Count - 1).Select(l => new ParallelMatrices(1, Output[l].ParametersColumnCount,
+                (y, x) => Matrix<float>.Build.Dense(Output[l].ParametersRowCount, 1))).ToList();
+
+            _difference = Enumerable.Range(0, Layers.Count).Select(l => new ParallelMatrices(1, Output[l].ParametersColumnCount,
+                (y, x) => Matrix<float>.Build.Dense(Output[l].ParametersRowCount, 1))).ToList();
+
+            Gradient = Layers.Select(layer => new MatrixFunction
             {
-                var input = i == 0 ? trainingData.Input() : neuronValues[i - 1];
-                neuronValues.Add(Layers[i].Calculate(input));
-            }
+                Weight = Matrix<float>.Build.Dense(layer.Weight.RowCount, layer.Weight.ColumnCount),
+                Bias = Matrix<float>.Build.Dense(layer.Bias.RowCount, layer.Bias.ColumnCount)
+            }).ToList();
+        }
 
-            var output = neuronValues.Last().ToColumnMajorArray().ToArray();
-            var expectedOutput = trainingData.ExpectedOutput.ToColumnMajorArray();
+        public void ApplyGradient(CudaClient cuda, int layer)
+        {
+            //var actualWeight = Layers[layer].Weight + Gradient[layer].Weight;
+            //var actualBias = Layers[layer].Bias + Gradient[layer].Bias;
 
-            var cost = CalculateCost(output, expectedOutput);
-            var gradient = CalculateGradient(neuronValues, trainingData);
-
-            return new NeuralNetworkResult
+            var weight = new GradientParams
             {
-                Output = output,
-                Cost = cost,
-                Gradient = gradient
-            };
-        }
-
-        private double CalculateCost(double[] output, double[] expectedOutput)
-        {
-            return (double) Enumerable.Range(0, output.Length)
-                .Sum(x => Math.Pow(Math.Abs(output[x] - expectedOutput[x]), 2));
-        }
-
-        private double GetLayerGradient(List<MatrixFunction> layers, int layer)
-        {
-            return layer == layers.Count - 1 ? 1.0 : GetLayerGradient(layers, layer + 1) / layers[layer].Weight.RowCount;
-        }
-
-        private NeuralNetworkGradient CalculateGradient(List<Matrix<double>> neuronValues, TrainingData trainingData)
-        {
-            var neuralNetworkGradient = new NeuralNetworkGradient
-            {
-                Layers = new List<MatrixFunctionGradient>()
+                Base = Layers[layer].CudaWeight.DevicePointer,
+                Gradient = Gradient[layer].CudaWeight.DevicePointer,
+                Count = Layers[layer].WeightColumnCount * Layers[layer].WeightRowCount
             };
 
-            Matrix<double> temp = null;
+            cuda.ApplyGradient(Cuda, weight);
 
-            for (var i = Layers.Count - 1; i >= 0; i--)
+            var bias = new GradientParams
             {
-                var layerIndex = i;
-                var widthRowCount = Layers[i].Weight.RowCount;
-                var widthColumnCount = Layers[i].Weight.ColumnCount;
+                Base = Layers[layer].CudaBias.DevicePointer,
+                Gradient = Gradient[layer].CudaBias.DevicePointer,
+                Count = Layers[layer].BiasColumnCount * Layers[layer].BiasRowCount
+            };
 
-                var expected = layerIndex == Layers.Count - 1 ? trainingData.ExpectedOutput : temp;
-                var difference = expected - neuronValues[layerIndex];
-                var layerGradient = GetLayerGradient(Layers, layerIndex);
+            cuda.ApplyGradient(Cuda, bias);
 
-                neuralNetworkGradient.Layers.Insert(0, new MatrixFunctionGradient
-                {
-                    Weight = Matrix<double>.Build.Dense(widthRowCount, widthColumnCount, (y, x) =>
-                    {
-                        var outputValue = difference[y, 0];
-                        var inputValue = (layerIndex == 0 ? trainingData.Input() : neuronValues[layerIndex - 1])[x, 0];
-                        return outputValue * inputValue * _evolutionConfig.GradientConfig.WeightGradientFactor * layerGradient;
-                    }),
-                    Bias = Matrix<double>.Build.Dense(widthRowCount, 1, (y, x) =>
-                    {
-                        var outputValue = difference[y, 0];
-                        return outputValue * _evolutionConfig.GradientConfig.BiasGradientFactor * layerGradient / widthRowCount;
-                    })
-                });
+            //if (!MatrixExtension.Compare(actualWeight, Layers[layer].Weight))
+            //{
+            //    Debugger.Break();
+            //}
 
-                if (layerIndex > 0)
-                {
-                    temp = Matrix<double>.Build.Dense(Layers[layerIndex - 1].Weight.RowCount, 1, (y, x) =>
-                    {
-                        var inputValue = 0.0;
-                        for (var r = 0; r < widthRowCount; r++)
-                        {
-                            inputValue += Layers[layerIndex].Weight[r, y] * difference[r, 0];
-                        }
-                        return inputValue * _evolutionConfig.GradientConfig.InputGradientFactor * layerGradient;
-                    });
-                }
-            }
-
-            return neuralNetworkGradient;
+            //if (!MatrixExtension.Compare(actualBias, Layers[layer].Bias))
+            //{
+            //    Debugger.Break();
+            //}
         }
 
-        
+        public void Synchronize()
+        {
+            Cuda.Synchronize();
+        }
+
+        public void CalcNeuronValues(CudaClient cuda, int layer)
+        {
+            var input = layer == 0 ? cuda.Input : Output[layer - 1];
+
+            //var actual = new ParallelMatrices(1, input.Elements.Count, input.Elements.Select(x => Layers[layer].Calculate(x)).ToList());
+
+            var neuronValueParams = new NeuronValueParams
+            {
+                Weight = Layers[layer].CudaWeight.DevicePointer,
+                Bias = Layers[layer].CudaBias.DevicePointer,
+                Input = input.Cuda.DevicePointer,
+                Output = Output[layer].Cuda.DevicePointer,
+                OutputRowCount = Layers[layer].WeightRowCount,
+                OutputColumnCount = input.ParametersColumnCount,
+                CommonDim = input.ParametersRowCount,
+            };
+
+            cuda.CalcNeuronValues(Cuda, neuronValueParams);
+
+            //if (!ParallelMatrices.Compare(actual, Output[layer]))
+            //{
+            //    throw new Exception("Not equal!");
+            //}
+        }
+
+        public float[] CalcCost(CudaClient cuda)
+        {
+            var count = cuda.ExpectedOutput.ParametersColumnCount;
+            var cost = (CudaDeviceVariable<float>) new float[count];
+
+            cuda.CalcCost(Cuda, new CostParams
+            {
+                Expected = cuda.ExpectedOutput.Cuda.DevicePointer,
+                Actual = Output.Last().Cuda.DevicePointer,
+                Cost = cost.DevicePointer,
+                ExpectedRowCount = cuda.ExpectedOutput.ParametersRowCount,
+                Count = count
+            });
+
+            return cost;
+        }
+
+        public void CalcExpectedDifference(CudaClient cuda, int layer)
+        {
+            var expected = layer == Layers.Count - 1 ? cuda.ExpectedOutput : _temp[layer];
+
+            //Output[layer].UpdateElements();
+
+            //var actual = new ParallelMatrices(1, Output[layer].ParametersColumnCount, 
+            //    (y, x) => expected.GetElement(y, x) - Output[layer].GetElement(y, x));
+
+            var expectedDifferenceParams = new ExpectedDifferenceParams
+            {
+                Expected = expected.Cuda.DevicePointer,
+                Actual = Output[layer].Cuda.DevicePointer,
+                Output = _difference[layer].Cuda.DevicePointer,
+                Count = expected.ParametersCount,
+            };
+
+            cuda.CalcExpectedDifference(Cuda, expectedDifferenceParams);
+
+            //if (!ParallelMatrices.Compare(actual, _difference[layer]))
+            //{
+            //    throw new Exception("Not equal!");
+            //}
+        }
+
+        public void CalcGradientWeight(CudaClient cuda, int layer)
+        {
+            var input = layer == 0 ? cuda.Input : Output[layer - 1];
+            var weightRowCount = Layers[layer].WeightRowCount;
+            var weightColumnCount = Layers[layer].WeightColumnCount;
+            var layerGradient = LayerGradients[layer];
+
+            //_difference[layer].UpdateElements();
+
+            //var actual = Matrix<float>.Build.Dense(weightRowCount, weightColumnCount, (y1, x1) =>
+            //{
+            //    var values = new List<float>();
+
+            //    for (var x = 0; x < _difference[layer].ColumnCount; x++)
+            //    {
+            //        var outputValue = _difference[layer].GetElement(0, x)[y1, 0];
+            //        var inputValue = input.GetElement(0, x)[x1, 0];
+            //        values.Add(outputValue * inputValue);
+            //    }
+                
+            //    return values.Average() * _evolutionConfig.GradientConfig.WeightGradientFactor * layerGradient;
+            //});
+
+            var gradientWeightParams = new GradientWeightParams
+            {
+                Difference = _difference[layer].Cuda.DevicePointer,
+                Input = input.Cuda.DevicePointer,
+                WeightGradient = Gradient[layer].CudaWeight.DevicePointer,
+                WeightRowCount = weightRowCount,
+                WeightColumnCount = weightColumnCount,
+                InputColumnCount = input.ParametersColumnCount,
+                GradientFactor = layerGradient * _evolutionConfig.GradientConfig.WeightGradientFactor * _evolutionConfig.GradientConfig.GradientFactor,
+            };
+
+            cuda.CalcGradientWeight(Cuda, gradientWeightParams);
+
+            //if (!MatrixExtension.Compare(actual, Gradient[layer].Weight))
+            //{
+            //    throw new Exception("Not equal!");
+            //}
+        }
+
+        public void CalcGradientBias(CudaClient cuda, int layer)
+        {
+            var input = layer == 0 ? cuda.Input : Output[layer - 1];
+            var weightRowCount = Layers[layer].WeightRowCount;
+            var weightColumnCount = Layers[layer].WeightColumnCount;
+            var layerGradient = LayerGradients[layer];
+
+            //_difference[layer].UpdateElements();
+
+            //var actual = Matrix<float>.Build.Dense(weightRowCount, 1, (y1, x1) =>
+            //{
+            //    var values = new List<float>();
+
+            //    for (var x = 0; x < _difference[layer].ColumnCount; x++)
+            //    {
+            //        var outputValue = _difference[layer].GetElement(0, x)[y1, 0];
+            //        values.Add(outputValue);
+            //    }
+
+            //    return values.Average() * layerGradient * _evolutionConfig.GradientConfig.WeightGradientFactor / weightColumnCount;
+            //});
+
+            var gradientBiasParams = new GradientBiasParams
+            {
+                Difference = _difference[layer].Cuda.DevicePointer,
+                BiasGradient = Gradient[layer].CudaBias.DevicePointer,
+                WeightRowCount = weightRowCount,
+                InputColumnCount = input.ParametersColumnCount,
+                GradientFactor = layerGradient * _evolutionConfig.GradientConfig.BiasGradientFactor * _evolutionConfig.GradientConfig.GradientFactor / weightColumnCount,
+            };
+
+            cuda.CalcGradientBias(Cuda, gradientBiasParams);
+
+            //if (!MatrixExtension.Compare(actual, Gradient[layer].Bias))
+            //{
+            //    throw new Exception("Not equal!");
+            //}
+        }
+
+        public void CalcExpectedOutput(CudaClient cuda, int layer)
+        {
+            var input = layer == 0 ? cuda.Input : Output[layer - 1];
+            var weightRowCount = Layers[layer].WeightRowCount;
+            var expectedRowCount = Layers[layer - 1].WeightRowCount;
+            var expectedColumnCount = input.ColumnCount;
+            var layerGradient = LayerGradients[layer];
+
+            //_difference[layer].UpdateElements();
+
+            //var actual = new ParallelMatrices(1, input.ColumnCount, (y, x) => Matrix<float>.Build.Dense(Layers[layer - 1].Weight.RowCount, 1, (y1, x1) =>
+            //{
+            //    var inputValue = 0.0f;
+            //    for (var r = 0; r < weightRowCount; r++)
+            //    {
+            //        inputValue += Layers[layer].Weight[r, y1] * _difference[layer].GetElement(y, x)[r, 0];
+            //    }
+            //    return inputValue * _evolutionConfig.GradientConfig.InputGradientFactor * layerGradient;
+            //}));
+
+            var expectedOutputParams = new ExpectedOutputParams
+            {
+                Difference = _difference[layer].Cuda.DevicePointer,
+                Weight = Layers[layer].CudaWeight.DevicePointer,
+                Temp = _temp[layer - 1].Cuda.DevicePointer,
+                WeightColumnCount = weightRowCount,
+                ExpectedRowCount = expectedRowCount,
+                ExpectedColumnCount = expectedColumnCount,
+                GradientFactor = layerGradient * _evolutionConfig.GradientConfig.InputGradientFactor * _evolutionConfig.GradientConfig.GradientFactor
+            };
+
+            cuda.CalcExpectedOutput(Cuda, expectedOutputParams);
+
+            //if (!ParallelMatrices.Compare(actual, _temp[layer - 1]))
+            //{
+            //    throw new Exception("Not equal!");
+            //}
+        }
+
+        private float GetLayerGradient(int layer)
+        {
+            return layer == Layers.Count - 1 ? 1.0f : GetLayerGradient(layer + 1) / Layers[layer].Weight.RowCount;
+        }
     }
 }

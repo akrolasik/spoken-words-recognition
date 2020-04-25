@@ -11,16 +11,16 @@
             </button>
         </div>
         <div style="margin: 20px 0 15px 0;">
-            <b>Training</b>
+            <b>Input</b>
         </div>
         <div class="row">
             <div class="col-12" style="margin: 0 0 -15px 15px">
                 <app-package size="small"></app-package>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 10px 20px 0 15px;">Words included in training: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <button 
                         [disabled]="!dataService.isLoaded()"
@@ -34,10 +34,10 @@
                     </button>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 10px 20px 0 15px;">Accents included in training: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <button 
                         [disabled]="!dataService.isLoaded()"
@@ -51,10 +51,10 @@
                     </button>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 10px 20px 0 15px;">Modifications included in training: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <button 
                         [disabled]="!dataService.isLoaded()"
@@ -68,39 +68,15 @@
                     </button>
                 </div>
             </div>
-            <div class="col-4">
-                <div style="margin: 12px 20px 0 15px;">Word set size: </div>
-            </div>
-            <div class="col-8">
-                <div style="margin-top: 10px;">
-                    <input 
-                        class="size-large shape-rectangle" 
-                        style="width: 70px;" 
-                        type="number" 
-                        [(ngModel)]="evolution.trainingConfig.wordSetSize"/>
-                </div>
-            </div>
-            <div class="col-4">
-                <div style="margin: 12px 20px 0 15px;">Iterations limit:</div>
-            </div>
-            <div class="col-8">
-                <div style="margin-top: 10px;">
-                    <input 
-                        class="size-large shape-rectangle" 
-                        style="width: 70px;" 
-                        [(ngModel)]="evolution.trainingConfig.iterationLimit"
-                        type="number"/>
-                </div>
-            </div>
         </div>
         <div style="margin-top: 20px;">
             <b>Network</b>
         </div>
         <div class="row">
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Input resolution: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
@@ -114,10 +90,10 @@
                         [(ngModel)]="evolution.networkConfig.inputResolution.height"/>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Number of hidden layers: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
@@ -127,10 +103,10 @@
                         (change)="onNumberOfHiddenLayersChange($event)"/>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Number of neuron in hidden layers: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input *ngFor="let numberOfNeurons of evolution.networkConfig.hiddenLayersNeuronCount; let i = index; trackBy: trackArray;"
                         class="size-large shape-rectangle" 
@@ -141,16 +117,92 @@
                         (change)="onNumberOfNeuronsInHiddenLayersChange(i,$event)"/>
                 </div>
             </div>
-            
+        </div>
+        <div style="margin-top: 20px">
+            <b>Training</b>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div style="margin: 10px 20px 0 15px;">Use GPU in calculation: </div>
+            </div>
+            <div class="col-6">
+                <div style="margin-top: 10px;">
+                    <nb-toggle 
+                        status="info" 
+                        style="transform: translateY(10px) scale(0.8); margin: -15px 0 -5px -5px;"
+                        [(ngModel)]="evolution.trainingConfig.useGpu">
+                    </nb-toggle>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="margin: 12px 20px 0 15px;">Word set size: </div>
+            </div>
+            <div class="col-6">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.trainingConfig.wordSetSize"/>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="margin: 12px 20px 0 15px;">Calculation thread count: </div>
+            </div>
+            <div class="col-6">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.trainingConfig.calculationThreadCount"/>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="margin: 12px 20px 0 15px;">Saving thread count: </div>
+            </div>
+            <div class="col-6">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.trainingConfig.savingThreadCount"/>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="margin: 10px 20px 0 15px;">Population size: </div>
+            </div>
+            <div class="col-6">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 70px;" 
+                        type="number" 
+                        [(ngModel)]="evolution.trainingConfig.populationSize"/>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="margin: 12px 20px 0 15px;">Iterations limit:</div>
+            </div>
+            <div class="col-6">
+                <div style="margin-top: 10px;">
+                    <input 
+                        class="size-large shape-rectangle" 
+                        style="width: 70px;" 
+                        [(ngModel)]="evolution.trainingConfig.iterationLimit"
+                        type="number"/>
+                </div>
+            </div>
         </div>
         <div style="margin-top: 20px;">
             <b>Gradient</b>
         </div>
         <div class="row">
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Gradient factor: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
@@ -159,10 +211,10 @@
                         [(ngModel)]="evolution.gradientConfig.gradientFactor"/>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Weightg radient factor: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
@@ -171,10 +223,10 @@
                         [(ngModel)]="evolution.gradientConfig.weightGradientFactor"/>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Bias gradient factor: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
@@ -183,10 +235,10 @@
                         [(ngModel)]="evolution.gradientConfig.biasGradientFactor"/>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div style="margin: 12px 20px 0 15px;">Input gradient factor: </div>
             </div>
-            <div class="col-8">
+            <div class="col-6">
                 <div style="margin-top: 10px;">
                     <input 
                         class="size-large shape-rectangle" 
