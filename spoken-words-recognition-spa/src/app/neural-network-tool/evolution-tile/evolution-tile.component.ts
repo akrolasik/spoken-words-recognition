@@ -154,7 +154,7 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
           };
 
           for(let i = 0; i < statistics[s].cost.length; i++) {
-            serie.data.push([Math.pow(2, i + 1), statistics[s].cost[i]]);
+            serie.data.push([Math.pow(2, i + 1) - 1, statistics[s].cost[i]]);
           }
 
           this.costChartOptions.series.push(serie);

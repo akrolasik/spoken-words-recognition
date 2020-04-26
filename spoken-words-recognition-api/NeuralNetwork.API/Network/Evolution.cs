@@ -261,6 +261,7 @@ namespace NeuralNetwork.API.Network
             }
 
             var stopwatch = new Stopwatch();
+            stopwatch.Start();
 
             while (!_cancellationTokenSource.IsCancellationRequested)
             {
@@ -270,8 +271,6 @@ namespace NeuralNetwork.API.Network
                 //    _cancellationTokenSource.Cancel();
                 //    break;
                 //}
-
-                stopwatch.Restart();
 
                 lock (_cudaClient)
                 {
@@ -370,11 +369,11 @@ namespace NeuralNetwork.API.Network
             for(var i = 0; i < Units.Count; i++)
             {
                 Statistics[i].CurrentIteration++;
-                Statistics[i].TotalComputingTimeInSeconds += (float)calculationTime.TotalSeconds;
+                Statistics[i].TotalComputingTimeInSeconds = (float)calculationTime.TotalSeconds;
+                var cost = Units[i].CalcCost(_cudaClient);
 
                 if (Math.Abs(Math.Pow(Statistics[i].CurrentIteration + 1, 1.0 / (Statistics[i].Cost.Count + 1)) - 2.0) < 1.0E-5f)
                 {
-                    var cost = Units[i].CalcCost(_cudaClient);
                     Statistics[i].Cost.Add(cost.Average());
                 }
             }

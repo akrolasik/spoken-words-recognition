@@ -18,7 +18,6 @@
     },
     "NeuralNetwork.API": {
       "commandName": "Project",
-      "launchBrowser": true,
       "launchUrl": "evolution",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
