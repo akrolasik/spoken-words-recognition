@@ -20,7 +20,6 @@ namespace NeuralNetwork.API.Network
         private CudaDeviceVariable<float> _cost;
 
         private CudaStream _cuda;
-
         public CudaStream Cuda
         {
             get
@@ -31,6 +30,104 @@ namespace NeuralNetwork.API.Network
                 }
 
                 return _cuda;
+            }
+        }
+
+        private CudaStream _calcNeuronValues;
+        public CudaStream CudaNeuronValues
+        {
+            get
+            {
+                if (_calcNeuronValues == null)
+                {
+                    _calcNeuronValues = new CudaStream();
+                }
+
+                return _calcNeuronValues;
+            }
+        }
+
+        private CudaStream _calcExpectedDif;
+        public CudaStream CudaExpectedDif
+        {
+            get
+            {
+                if (_calcExpectedDif == null)
+                {
+                    _calcExpectedDif = new CudaStream();
+                }
+
+                return _calcExpectedDif;
+            }
+        }
+
+        private CudaStream _calcGradientWeight;
+        public CudaStream CudaGradientWeight
+        {
+            get
+            {
+                if (_calcGradientWeight == null)
+                {
+                    _calcGradientWeight = new CudaStream();
+                }
+
+                return _calcGradientWeight;
+            }
+        }
+
+        private CudaStream _calcGradientBias;
+        public CudaStream CudaGradientBias
+        {
+            get
+            {
+                if (_calcGradientBias == null)
+                {
+                    _calcGradientBias = new CudaStream();
+                }
+
+                return _calcGradientBias;
+            }
+        }
+
+        private CudaStream _calcExpectedOutput;
+        public CudaStream CudaExpectedOutput
+        {
+            get
+            {
+                if (_calcExpectedOutput == null)
+                {
+                    _calcExpectedOutput = new CudaStream();
+                }
+
+                return _calcExpectedOutput;
+            }
+        }
+
+        private CudaStream _applyGradient;
+        public CudaStream CudaApplyGradient
+        {
+            get
+            {
+                if (_applyGradient == null)
+                {
+                    _applyGradient = new CudaStream();
+                }
+
+                return _applyGradient;
+            }
+        }
+
+        private CudaStream _calcCost;
+        public CudaStream CudaCost
+        {
+            get
+            {
+                if (_calcCost == null)
+                {
+                    _calcCost = new CudaStream();
+                }
+
+                return _calcCost;
             }
         }
 
@@ -107,13 +204,21 @@ namespace NeuralNetwork.API.Network
 
         public void ApplyGradient(CudaClient cuda, int layer)
         {
-            cuda.ApplyGradient(Cuda, _weightGradientParams[layer]);
-            cuda.ApplyGradient(Cuda, _biasGradientParams[layer]);
+            cuda.ApplyGradient(CudaApplyGradient, _weightGradientParams[layer]);
+            cuda.ApplyGradient(CudaApplyGradient, _biasGradientParams[layer]);
         }
 
         public void Synchronize()
         {
             Cuda.Synchronize();
+
+            CudaNeuronValues.Synchronize();
+            CudaGradientWeight.Synchronize();
+            CudaGradientBias.Synchronize();
+            CudaApplyGradient.Synchronize();
+            CudaExpectedOutput.Synchronize();
+            CudaExpectedDif.Synchronize();
+            CudaCost.Synchronize();
         }
 
         private NeuronValueParams[] _neuronValueParams;
@@ -141,7 +246,7 @@ namespace NeuralNetwork.API.Network
 
         public void CalcNeuronValues(CudaClient cuda, int layer)
         {
-            cuda.CalcNeuronValues(Cuda, _neuronValueParams[layer]);
+            cuda.CalcNeuronValues(CudaNeuronValues, _neuronValueParams[layer]);
         }
 
         private CostParams _costParams;
@@ -167,7 +272,7 @@ namespace NeuralNetwork.API.Network
 
         public float[] CalcCost(CudaClient cuda)
         {
-            cuda.CalcCost(Cuda, _costParams);
+            cuda.CalcCost(CudaCost, _costParams);
             return _cost;
         }
 
@@ -192,7 +297,7 @@ namespace NeuralNetwork.API.Network
 
         public void CalcExpectedDifference(CudaClient cuda, int layer)
         {
-            cuda.CalcExpectedDifference(Cuda, _expectedDifferenceParams[layer]);
+            cuda.CalcExpectedDifference(CudaExpectedDif, _expectedDifferenceParams[layer]);
         }
 
         private GradientWeightParams[] _gradientWeightParams;
@@ -222,7 +327,7 @@ namespace NeuralNetwork.API.Network
 
         public void CalcGradientWeight(CudaClient cuda, int layer)
         {
-            cuda.CalcGradientWeight(Cuda, _gradientWeightParams[layer]);
+            cuda.CalcGradientWeight(CudaGradientWeight, _gradientWeightParams[layer]);
         }
 
         private GradientBiasParams[] _gradientBiasParams;
@@ -250,7 +355,7 @@ namespace NeuralNetwork.API.Network
 
         public void CalcGradientBias(CudaClient cuda, int layer)
         {
-            cuda.CalcGradientBias(Cuda, _gradientBiasParams[layer]);
+            cuda.CalcGradientBias(CudaGradientBias, _gradientBiasParams[layer]);
         }
 
         private ExpectedOutputParams[] _expectedOutputParams;
@@ -281,7 +386,7 @@ namespace NeuralNetwork.API.Network
 
         public void CalcExpectedOutput(CudaClient cuda, int layer)
         {
-            cuda.CalcExpectedOutput(Cuda, _expectedOutputParams[layer - 1]);
+            cuda.CalcExpectedOutput(CudaExpectedOutput, _expectedOutputParams[layer - 1]);
         }
 
         private float GetLayerGradient(int layer)

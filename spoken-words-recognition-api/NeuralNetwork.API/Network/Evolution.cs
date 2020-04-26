@@ -354,7 +354,7 @@ namespace NeuralNetwork.API.Network
                 }
             }
 
-            // Synchronize();
+            //Synchronize();
         }
 
         public void CancelCalculation()
