@@ -1,7 +1,7 @@
 extern "C" __global__ void
 calcGradientWeight(
 	float *difference,
-    float *input, 
+    const float *input, 
     float *weightGradient, 
 	int weightRowCount,
 	int weightColumnCount,

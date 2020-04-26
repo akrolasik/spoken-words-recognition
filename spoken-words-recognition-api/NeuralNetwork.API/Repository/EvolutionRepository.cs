@@ -65,10 +65,10 @@ namespace NeuralNetwork.API.Repository
             var config = _evolutions.First(x => x.Id == id);
             _currentEvolution = new Evolution(config);
 
-            while (true)
+            _ = Task.Run(() =>
             {
-                await _currentEvolution.StartCalculation();
-            }
+                _currentEvolution.StartCalculation();
+            });
         }
 
         public void StopRunningEvolution()

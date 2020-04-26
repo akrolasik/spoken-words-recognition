@@ -228,7 +228,7 @@ namespace NeuralNetwork.API.Network
             await Task.WhenAll(tasks);
         }
 
-        public async Task StartCalculation()
+        public void StartCalculation()
         {
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -238,26 +238,30 @@ namespace NeuralNetwork.API.Network
 
             ShuffleData();
 
-            var maintenance = Task.Run(async () =>
-            {
-                while (!_cancellationTokenSource.IsCancellationRequested)
-                {
-                    Thread.Sleep(TimeSpan.FromSeconds(1));
-                    //await Save();
+            //var maintenance = Task.Run(async () =>
+            //{
+            //    while (!_cancellationTokenSource.IsCancellationRequested)
+            //    {
+            //        Thread.Sleep(TimeSpan.FromSeconds(1));
+            //        //await Save();
 
-                    //if (!_cancellationTokenSource.IsCancellationRequested)
-                    //{
-                    //    ShuffleData();
-                    //}
-                }
-            });
+            //        //if (!_cancellationTokenSource.IsCancellationRequested)
+            //        //{
+            //        //    ShuffleData();
+            //        //}
+            //    }
+            //});
 
-            lock (_cudaClient)
+            foreach (var unit in Units)
             {
-                foreach (var unit in Units)
-                {
-                    unit.PrepareCuda(_cudaClient);
-                }
+                unit.PrepareCuda(_cudaClient);
+                unit.PrepareCalcNeuronValues(_cudaClient);
+                unit.PrepareCalcExpectedDifference(_cudaClient);
+                unit.PrepareCalcGradientWeight(_cudaClient);
+                unit.PrepareCalcGradientBias(_cudaClient);
+                unit.PrepareCalcExpectedOutput(_cudaClient);
+                unit.PrepareApplyGradient(_cudaClient);
+                unit.PrepareCalcCost(_cudaClient);
             }
 
             var stopwatch = new Stopwatch();
@@ -272,24 +276,21 @@ namespace NeuralNetwork.API.Network
                 //    break;
                 //}
 
-                lock (_cudaClient)
-                {
-                    Calculate();
-                }
+                Calculate();
 
                 UpdateStatistics(stopwatch.Elapsed);
             }
 
-            await maintenance.ContinueWith(async _ =>
-            {
-                lock (_cudaClient)
-                {
-                    _cudaClient.Dispose();
-                }
+            //await maintenance.ContinueWith(async _ =>
+            //{
+            //    lock (_cudaClient)
+            //    {
+            //        _cudaClient.Dispose();
+            //    }
 
-                await Save();
-                Config.IsRunning = false;
-            });
+            //    await Save();
+            //    Config.IsRunning = false;
+            //});
         }
 
         private void ShuffleData()
@@ -298,11 +299,8 @@ namespace NeuralNetwork.API.Network
             var inputMatrices = randomSet.Select(x => x.Input()).ToList();
             var outputMatrices = randomSet.Select(x => x.ExpectedOutput).ToList();
 
-            lock (_cudaClient)
-            {
-                _cudaClient.Input = new ParallelMatrices(1, inputMatrices.Count, inputMatrices);
-                _cudaClient.ExpectedOutput = new ParallelMatrices(1, inputMatrices.Count, outputMatrices);
-            }
+            _cudaClient.Input = new ParallelMatrices(1, inputMatrices.Count, inputMatrices);
+            _cudaClient.ExpectedOutput = new ParallelMatrices(1, inputMatrices.Count, outputMatrices);
         }
 
         private void Synchronize()
@@ -370,11 +368,16 @@ namespace NeuralNetwork.API.Network
             {
                 Statistics[i].CurrentIteration++;
                 Statistics[i].TotalComputingTimeInSeconds = (float)calculationTime.TotalSeconds;
-                var cost = Units[i].CalcCost(_cudaClient);
 
                 if (Math.Abs(Math.Pow(Statistics[i].CurrentIteration + 1, 1.0 / (Statistics[i].Cost.Count + 1)) - 2.0) < 1.0E-5f)
                 {
+                    var cost = Units[i].CalcCost(_cudaClient);
                     Statistics[i].Cost.Add(cost.Average());
+
+                    //foreach (var parallelMatricese in Units[i].Output)
+                    //{
+                    //    parallelMatricese.UpdateElements();
+                    //}
                 }
             }
         }

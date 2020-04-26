@@ -1,6 +1,6 @@
 extern "C" __global__ void
 calcCost(
-    float *expected, 
+    const float *expected, 
     float *actual, 
     float *cost, 
 	int expectedRowCount,

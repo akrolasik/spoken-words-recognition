@@ -2,7 +2,7 @@ extern "C" __global__ void
 calcNeuronValues(
     float *weight, 
     float *bias, 
-    float *input, 
+    const float *input, 
     float *output, 
 	int outputRowCount,
 	int outputColumnCount,
