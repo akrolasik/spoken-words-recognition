@@ -70,7 +70,7 @@ namespace NeuralNetwork.API.Network
 
             var unitIndices = Enumerable.Range(0, Config.TrainingConfig.PopulationSize).ToList();
 
-            var tasks = Enumerable.Range(0, Config.TrainingConfig.CalculationThreadCount).Select(x => Task.Run(() =>
+            var tasks = Enumerable.Range(0, Config.TrainingConfig.SavingThreadCount).Select(x => Task.Run(() =>
             {
                 while (true)
                 {
@@ -125,12 +125,18 @@ namespace NeuralNetwork.API.Network
 
         public static void Remove(EvolutionConfig config)
         {
-            var path = $"temp/evolutions/{config.Id}";
+            var basePath = $"temp/evolutions/{config.Id}";
+            var backupPath = $"temp/evolutions/{config.Id}_backup";
+            var tempPath = $"temp/evolutions/{config.Id}_temp";
 
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, true);
-            }
+            if (Directory.Exists(basePath))
+                Directory.Delete(basePath, true);
+
+            if (Directory.Exists(backupPath))
+                Directory.Delete(backupPath, true);
+
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
         }
 
         public async Task Save()
@@ -141,10 +147,10 @@ namespace NeuralNetwork.API.Network
 
 
             if (Directory.Exists(BackupPath))
-                Directory.Delete(BackupPath);
+                Directory.Delete(BackupPath, true);
 
             if (Directory.Exists(TempPath))
-                Directory.Delete(TempPath);
+                Directory.Delete(TempPath, true);
 
             Directory.CreateDirectory(TempPath);
 
@@ -157,7 +163,7 @@ namespace NeuralNetwork.API.Network
             Directory.Move(TempPath, BasePath);
 
             if (Directory.Exists(BackupPath))
-                Directory.Delete(BackupPath);
+                Directory.Delete(BackupPath, true);
 
             _saving = false;
         }
@@ -174,35 +180,47 @@ namespace NeuralNetwork.API.Network
 
             var tasks = Enumerable.Range(0, Config.TrainingConfig.SavingThreadCount).Select(x => Task.Run(() =>
             {
-                while (true)
+                try
                 {
-                    int unitIndex;
-
-                    lock (unitIndices)
+                    while (true)
                     {
-                        if (unitIndices.Count > 0)
+                        int unitIndex;
+
+                        lock (unitIndices)
                         {
-                            unitIndex = unitIndices[0];
-                            unitIndices.RemoveAt(0);
+                            if (unitIndices.Count > 0)
+                            {
+                                unitIndex = unitIndices[0];
+                                unitIndices.RemoveAt(0);
+                            }
+                            else return;
                         }
-                        else return;
-                    }
 
-                    var unitPath = $"{TempPath}/unit{unitIndex}";
-                    if (!Directory.Exists(unitPath))
-                    {
-                        Directory.CreateDirectory(unitPath);
-                    }
+                        var unitPath = $"{TempPath}/unit{unitIndex}";
+                        if (!Directory.Exists(unitPath))
+                        {
+                            Directory.CreateDirectory(unitPath);
+                        }
 
-                    for (var l = 0; l < Units[unitIndex].Layers.Count; l++)
+                        for (var l = 0; l < Units[unitIndex].Layers.Count; l++)
+                        {
+                            var weightArray = Units[unitIndex].Layers[l].Weight.ToColumnMajorArray();
+                            var biasArray = Units[unitIndex].Layers[l].Bias.ToColumnMajorArray();
+                            var byteArray = weightArray.SelectMany(BitConverter.GetBytes).ToArray().ToList();
+                            byteArray.AddRange(biasArray.SelectMany(BitConverter.GetBytes).ToArray());
+                            using var fileStream = new FileStream($"{unitPath}/layer{l}.bin", FileMode.Create);
+                            using var stream = new BinaryWriter(fileStream);
+                            stream.Write(byteArray.ToArray());
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // don't worry, there is backup
+
+                    if (!Directory.Exists(TempPath))
                     {
-                        var weightArray = Units[unitIndex].Layers[l].Weight.ToColumnMajorArray();
-                        var biasArray = Units[unitIndex].Layers[l].Bias.ToColumnMajorArray();
-                        var byteArray = weightArray.SelectMany(BitConverter.GetBytes).ToArray().ToList();
-                        byteArray.AddRange(biasArray.SelectMany(BitConverter.GetBytes).ToArray());
-                        using var fileStream = new FileStream($"{unitPath}/layer{l}.bin", FileMode.Create);
-                        using var stream = new BinaryWriter(fileStream);
-                        stream.Write(byteArray.ToArray());
+                        Directory.Delete(TempPath, true);
                     }
                 }
             }));
@@ -242,6 +260,8 @@ namespace NeuralNetwork.API.Network
                 }
             }
 
+            var stopwatch = new Stopwatch();
+
             while (!_cancellationTokenSource.IsCancellationRequested)
             {
                 //if (Config.TrainingConfig.IterationCount == Statistics.CurrentIteration)
@@ -251,15 +271,13 @@ namespace NeuralNetwork.API.Network
                 //    break;
                 //}
 
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
+                stopwatch.Restart();
 
                 lock (_cudaClient)
                 {
                     Calculate();
                 }
 
-                stopwatch.Stop();
                 UpdateStatistics(stopwatch.Elapsed);
             }
 
@@ -305,7 +323,7 @@ namespace NeuralNetwork.API.Network
                     Units[i].CalcNeuronValues(_cudaClient, l);
                 }
 
-                Synchronize();
+                // Synchronize();
             }
 
             for (var l = Config.NetworkConfig.HiddenLayersNeuronCount.Length; l >= 0; l--)
@@ -315,7 +333,7 @@ namespace NeuralNetwork.API.Network
                     Units[i].CalcExpectedDifference(_cudaClient, l);
                 }
 
-                Synchronize();
+                // Synchronize();
 
                 for (var i = 0; i < Units.Count; i++)
                 {
@@ -328,7 +346,7 @@ namespace NeuralNetwork.API.Network
                     }
                 }
 
-                Synchronize();
+                // Synchronize();
             }
 
             for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
@@ -339,7 +357,7 @@ namespace NeuralNetwork.API.Network
                 }
             }
 
-            Synchronize();
+            // Synchronize();
         }
 
         public void CancelCalculation()

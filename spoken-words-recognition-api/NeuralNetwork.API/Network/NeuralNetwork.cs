@@ -17,6 +17,8 @@ namespace NeuralNetwork.API.Network
         private List<ParallelMatrices> _temp;
         private List<ParallelMatrices> _difference;
 
+        private CudaDeviceVariable<float> _cost;
+
         private CudaStream _cuda;
 
         public CudaStream Cuda
@@ -127,18 +129,22 @@ namespace NeuralNetwork.API.Network
         public float[] CalcCost(CudaClient cuda)
         {
             var count = cuda.ExpectedOutput.ParametersColumnCount;
-            var cost = (CudaDeviceVariable<float>) new float[count];
+
+            if (_cost == null)
+            {
+                _cost = new float[count];
+            }
 
             cuda.CalcCost(Cuda, new CostParams
             {
                 Expected = cuda.ExpectedOutput.Cuda.DevicePointer,
                 Actual = Output.Last().Cuda.DevicePointer,
-                Cost = cost.DevicePointer,
+                Cost = _cost.DevicePointer,
                 ExpectedRowCount = cuda.ExpectedOutput.ParametersRowCount,
                 Count = count
             });
 
-            return cost;
+            return _cost;
         }
 
         public void CalcExpectedDifference(CudaClient cuda, int layer)

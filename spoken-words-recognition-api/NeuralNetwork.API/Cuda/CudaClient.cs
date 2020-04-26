@@ -43,7 +43,7 @@ namespace NeuralNetwork.API.Cuda
             _applyGradient.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcCost.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
 
-            var resultParamCount = config.NetworkConfig.HiddenLayersNeuronCount.First() * config.TrainingConfig.PopulationSize;
+            var resultParamCount = config.NetworkConfig.HiddenLayersNeuronCount.First() * config.TrainingConfig.WordSetSize;
             var resultParamCountBlocksPerGrid = (resultParamCount + ThreadsPerBlock - 1) / ThreadsPerBlock;
 
             _calcNeuronValues.Cuda.GridDimensions = new dim3(resultParamCountBlocksPerGrid, 1, 1);

@@ -139,7 +139,7 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
           series: []
         };
 
-        for(let s = 0; s < 1; s++) { //statistics.length
+        for(let s = 0; s < statistics.length; s++) {
 
           let serie = {
             data: [],
@@ -154,7 +154,7 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
           };
 
           for(let i = 0; i < statistics[s].cost.length; i++) {
-            serie.data.push([Math.pow(2, i), statistics[s].cost[i]]);
+            serie.data.push([Math.pow(2, i + 1), statistics[s].cost[i]]);
           }
 
           this.costChartOptions.series.push(serie);
