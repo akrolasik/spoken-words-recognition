@@ -2,7 +2,7 @@ extern "C" __global__ void
 calcNeuronValues(
     float *weight, 
     float *bias, 
-    const float *input, 
+    float *input, 
     float *output, 
 	int outputRowCount,
 	int outputColumnCount,
@@ -18,13 +18,19 @@ calcNeuronValues(
 		int i, j;
 
 		float sum = 0.0f;
+		float temp = 0.0f;
 		
 		for(int d = 0; d < commonDim; d++)
 		{
-            i = d * outputRowCount + y;
             j = x * commonDim + d;
 
-            sum += weight[i] * input[j];
+			temp = input[j];
+
+			if(temp != 0) 
+			{
+				i = d * outputRowCount + y;
+				sum += weight[i] * temp;
+			}
 		}
 
 		sum += bias[y];

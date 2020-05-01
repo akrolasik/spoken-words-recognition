@@ -15,7 +15,7 @@ namespace PackData
         }
 
         [FunctionName("PackData")]
-        public async Task Run([TimerTrigger("0 0 0 * * *")]TimerInfo myTimer, ILogger logger)
+        public async Task Run([TimerTrigger("0 * * * * *")]TimerInfo myTimer, ILogger logger)
         {
             _dataPacker.Logger = logger;
 

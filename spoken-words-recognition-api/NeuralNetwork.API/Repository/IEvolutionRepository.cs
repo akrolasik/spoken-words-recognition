@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using NeuralNetwork.API.Config;
 using NeuralNetwork.API.Statistics;
 
@@ -11,8 +10,8 @@ namespace NeuralNetwork.API.Repository
         void AddEvolution(EvolutionConfig evolutionConfig);
         void DeleteEvolution(Guid id);
         List<EvolutionConfig> GetEvolutions();
-        Task StartEvolution(Guid id);
+        void StartEvolution(Guid id);
         void StopRunningEvolution();
-        List<NeuralNetworkStatistics> GetNeuralNetworkStatistics(Guid id);
+        EvolutionStatistics GetNeuralNetworkStatistics(Guid id);
     }
 }

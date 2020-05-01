@@ -1,16 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using ManagedCuda;
 using ManagedCuda.VectorTypes;
+using MathNet.Numerics.LinearAlgebra;
 using NeuralNetwork.API.Config;
+using NeuralNetwork.API.Data;
 using NeuralNetwork.API.Network;
 
 namespace NeuralNetwork.API.Cuda
 {
     public class CudaClient
     {
+        public List<TrainingData> NewTrainingData;
+        public List<Matrix<float>> NewInput;
+        public List<Matrix<float>> NewExpectedOutput;
+
+        public List<TrainingData> TrainingData;
         public ParallelMatrices Input;
         public ParallelMatrices ExpectedOutput;
+
 
         private readonly Kernel _calcNeuronValues;
         private readonly Kernel _calcExpectedDif;
@@ -18,15 +27,19 @@ namespace NeuralNetwork.API.Cuda
         private readonly Kernel _calcGradientBias;
         private readonly Kernel _calcExpectedOutput;
         private readonly Kernel _applyGradient;
-        private readonly Kernel _calcCost;
+        private readonly Kernel _replaceData;
 
         private const int ThreadsPerBlock = 1024;
 
         private readonly CudaContext _ctx;
+        private readonly Random _random = new Random();
+        private readonly CudaStream _replaceDataStream;
+
 
         public CudaClient(EvolutionConfig config)
         {
             _ctx = new CudaContext(true);
+            _replaceDataStream = new CudaStream();
 
             _calcNeuronValues = new Kernel(_ctx, "calcNeuronValues");
             _calcExpectedDif = new Kernel(_ctx, "calcExpectedDif");
@@ -34,7 +47,7 @@ namespace NeuralNetwork.API.Cuda
             _calcGradientBias = new Kernel(_ctx, "calcGradientBias");
             _calcExpectedOutput = new Kernel(_ctx, "calcExpectedOutput");
             _applyGradient = new Kernel(_ctx, "applyGradient");
-            _calcCost = new Kernel(_ctx, "calcCost");
+            _replaceData = new Kernel(_ctx, "replaceData");
 
             _calcNeuronValues.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcExpectedDif.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
@@ -42,7 +55,7 @@ namespace NeuralNetwork.API.Cuda
             _calcGradientBias.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcExpectedOutput.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _applyGradient.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
-            _calcCost.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
+            _replaceData.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
 
             var resultParamCount = config.NetworkConfig.HiddenLayersNeuronCount.First() * config.TrainingConfig.WordSetSize;
             var resultParamCountBlocksPerGrid = (resultParamCount + ThreadsPerBlock - 1) / ThreadsPerBlock;
@@ -58,9 +71,68 @@ namespace NeuralNetwork.API.Cuda
             _calcGradientWeight.Cuda.GridDimensions = new dim3(networkParamCountBlocksPerGrid, 1, 1);
             _applyGradient.Cuda.GridDimensions = new dim3(networkParamCountBlocksPerGrid, 1, 1);
 
-            var resultCountBlocksPerGrid = (config.TrainingConfig.WordSetSize + ThreadsPerBlock - 1) / ThreadsPerBlock;
+            var inputParamCountBlocksPerGrid = (config.NetworkConfig.InputCount + ThreadsPerBlock - 1) / ThreadsPerBlock;
+            _replaceData.Cuda.GridDimensions = new dim3(inputParamCountBlocksPerGrid, 1, 1);
+        }
 
-            _calcCost.Cuda.GridDimensions = new dim3(resultCountBlocksPerGrid, 1, 1);
+        public void UpdateData(bool all = false)
+        {
+            if (all)
+            {
+                Input = new ParallelMatrices(1, NewInput.Count, NewInput);
+                ExpectedOutput = new ParallelMatrices(1, NewExpectedOutput.Count, NewExpectedOutput);
+                TrainingData = NewTrainingData;
+            }
+            else
+            {
+                var data = Enumerable.Range(0, Input.ColumnCount).Select(x => x).ToList();
+                var toReplace = new List<int>();
+
+                while (toReplace.Count < NewInput.Count)
+                {
+                    var index = _random.Next(data.Count);
+                    toReplace.Add(data[index]);
+                    data.RemoveAt(index);
+                }
+
+                var fromInput = NewInput.Select(x => (CudaDeviceVariable<float>)x.ToColumnMajorArray()).ToList();
+                var fromNewExpectedOutput = NewExpectedOutput.Select(x => (CudaDeviceVariable<float>)x.ToColumnMajorArray()).ToList();
+
+                for (var i = 0; i < NewInput.Count; i++)
+                {
+                    TrainingData[toReplace[i]] = NewTrainingData[i];
+
+                    ReplaceData(new ReplaceData
+                    {
+                        From = fromInput[i].DevicePointer,
+                        To = Input.Cuda.DevicePointer,
+                        Offset = toReplace[i] * Input.ParametersRowCount,
+                        Count = Input.ParametersRowCount
+                    });
+
+                    ReplaceData(new ReplaceData
+                    {
+                        From = fromNewExpectedOutput[i].DevicePointer,
+                        To = ExpectedOutput.Cuda.DevicePointer,
+                        Offset = toReplace[i] * Input.ParametersRowCount,
+                        Count = Input.ParametersRowCount
+                    });
+                }
+
+                _replaceDataStream.Synchronize();
+
+                fromInput.ForEach(x => x.Dispose());
+                fromNewExpectedOutput.ForEach(x => x.Dispose());
+            }
+
+            NewInput = null;
+            NewExpectedOutput = null;
+            NewTrainingData = null;
+        }
+
+        public void ReplaceData(ReplaceData @params)
+        {
+            _replaceData.Cuda.RunAsync(_replaceDataStream.Stream, @params.From, @params.To, @params.Offset, @params.Count);
         }
 
         public void CalcNeuronValues(CudaStream stream, NeuronValueParams @params)
@@ -126,19 +198,19 @@ namespace NeuralNetwork.API.Cuda
                 @params.Count);
         }
 
-        public void CalcCost(CudaStream stream, CostParams @params)
-        {
-            _calcCost.Cuda.RunAsync(stream.Stream,
-                @params.Expected,
-                @params.Actual,
-                @params.Cost,
-                @params.ExpectedRowCount,
-                @params.Count);
-        }
-
         public void Dispose()
         {
+            Input.Dispose();
+            ExpectedOutput.Dispose();
+
             _ctx.Dispose();
+        }
+
+        public void UpdateData(List<TrainingData> randomDataSet)
+        {
+            NewTrainingData = randomDataSet;
+            NewInput = randomDataSet.Select(x => x.Input()).ToList();
+            NewExpectedOutput = randomDataSet.Select(x => x.ExpectedOutput).ToList();
         }
     }
 }

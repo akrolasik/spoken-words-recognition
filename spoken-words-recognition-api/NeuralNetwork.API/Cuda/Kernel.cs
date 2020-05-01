@@ -10,7 +10,7 @@ namespace NeuralNetwork.API.Cuda
 
         public Kernel(CudaContext ctx, string name)
         {
-            var filename = $"Kernel/{name}.txt";
+            var filename = $"Cuda/Kernel/{name}.txt";
             var fileToCompile = File.ReadAllText(filename);
             var rtc = new CudaRuntimeCompiler(fileToCompile, name);
 

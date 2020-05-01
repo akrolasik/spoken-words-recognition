@@ -58,17 +58,14 @@ namespace NeuralNetwork.API.Repository
             return _evolutions;
         }
 
-        public async Task StartEvolution(Guid id)
+        public void StartEvolution(Guid id)
         {
             StopRunningEvolution();
 
             var config = _evolutions.First(x => x.Id == id);
             _currentEvolution = new Evolution(config);
-
-            _ = Task.Run(() =>
-            {
-                _currentEvolution.StartCalculation();
-            });
+            
+            Task.Run(_currentEvolution.StartCalculation);
         }
 
         public void StopRunningEvolution()
@@ -86,11 +83,11 @@ namespace NeuralNetwork.API.Repository
             }
         }
 
-        public List<NeuralNetworkStatistics> GetNeuralNetworkStatistics(Guid id)
+        public EvolutionStatistics GetNeuralNetworkStatistics(Guid id)
         {
             try
             {
-                return _currentEvolution.Statistics;
+                return _currentEvolution.EvolutionStatistics;
             }
             catch (Exception)
             {

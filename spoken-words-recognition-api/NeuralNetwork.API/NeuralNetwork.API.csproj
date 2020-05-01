@@ -16,25 +16,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Kernel\applyGradient.txt">
+    <None Update="Cuda\Kernel\applyGradient.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Kernel\calcCost.txt">
+    <None Update="Cuda\Kernel\replaceData.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Kernel\calcExpectedDif.txt">
+    <None Update="Cuda\Kernel\calcExpectedDif.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Kernel\calcGradientBias.txt">
+    <None Update="Cuda\Kernel\calcGradientBias.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Kernel\calcGradientWeight.txt">
+    <None Update="Cuda\Kernel\calcGradientWeight.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Kernel\calcExpectedOutput.txt">
+    <None Update="Cuda\Kernel\calcExpectedOutput.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Kernel\calcNeuronValues.txt">
+    <None Update="Cuda\Kernel\calcNeuronValues.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

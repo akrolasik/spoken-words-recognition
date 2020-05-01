@@ -7,11 +7,10 @@
             [checked]="evolution.isRunning" 
             (change)="onStateChange($event)">
         </nb-toggle>
-        <span *ngIf="statistics != null && statistics.length > 0" style="margin-left: 10px;">
-            <span style="font-weight: normal; font-size: 15px;">Total time: <b>{{statistics[0].totalComputingTimeInSeconds | time}}</b></span>
-            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iteration: <b>{{statistics[0].currentIteration}}</b></span>
-            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./s: <b>{{statistics[0].currentIteration / statistics[0].totalComputingTimeInSeconds | number: '1.0-0'}}</b></span>
-            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./hour: <b>{{statistics[0].currentIteration / statistics[0].totalComputingTimeInSeconds * 3600 | number: '1.0-0'}}</b></span>
+        <span *ngIf="statistics != null" style="margin-left: 10px;">
+            <span style="font-weight: normal; font-size: 15px;">Total time: <b>{{statistics.totalComputingTimeInSeconds | time}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iteration: <b>{{statistics.iterationCount}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./s: <b>{{tempIterationsPerSecond | number: '1.0-0'}}</b></span>
         </span>
         <div style="float: right; margin: -5px 0 -15px 0;">
             <button 
@@ -28,6 +27,9 @@
     <nb-card-body style="padding: 0; overflow: hidden;">
         <div class="row">
             <nb-tabset style="width: 100%;" fullWidth>
+                <nb-tab tabTitle="Words">
+                    <div echarts [options]="wordsChartOptions" style="height: 450px; margin: 20px 0 0 0;"></div>
+                </nb-tab>
                 <nb-tab tabTitle="Cost">
                     <div echarts [options]="costChartOptions" style="height: 450px; margin: 20px 0 0 0;"></div>
                 </nb-tab>
@@ -105,48 +107,17 @@
                                 </span>
                                 <div style="height: 10px"></div>
                                 <span style="margin: 0 0 0 10px;">
-                                    Use GPU in calculation: <b>{{evolution.trainingConfig.useGpu}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
                                     Words set size: <b>{{evolution.trainingConfig.wordSetSize}}</b>
                                 </span>
                                 <div style="height: 5px"></div>
                                 <span style="margin: 0 0 0 10px;">
-                                    Calculation thread count: <b>{{evolution.trainingConfig.calculationThreadCount}}</b>
+                                    Gradient factor: <b>{{evolution.trainingConfig.gradientFactor}}</b>
                                 </span>
                                 <div style="height: 5px"></div>
                                 <span style="margin: 0 0 0 10px;">
-                                    Saving thread count: <b>{{evolution.trainingConfig.savingThreadCount}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Population size: <b>{{evolution.trainingConfig.populationSize}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Iteration limit: <b>{{evolution.trainingConfig.iterationLimit}}</b>
+                                    Max calculation time in minutes: <b>{{evolution.trainingConfig.maxCalculationTimeInMinutes}}</b>
                                 </span>
                                 <div style="height: 20px"></div>
-                                <span>
-                                    <b>Gradient</b>
-                                </span>
-                                <div style="height: 10px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Gradient factor: <b>{{evolution.gradientConfig.gradientFactor}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Weight gradient factor: <b>{{evolution.gradientConfig.weightGradientFactor}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Bias gradient factor: <b>{{evolution.gradientConfig.biasGradientFactor}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Input gradient factor: <b>{{evolution.gradientConfig.inputGradientFactor}}</b>
-                                </span>
                             </div>
                         </div>
                     </div>

@@ -4,30 +4,6 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace NeuralNetwork.API.Network
 {
-    public class MatrixExtension
-    {
-        public static bool Compare(Matrix<float> matrix1, Matrix<float> matrix2)
-        {
-            var params1 = matrix1.AsColumnMajorArray();
-            var params2 = matrix2.AsColumnMajorArray();
-
-            if (params1.Length != params2.Length)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < params1.Length; i++)
-            {
-                if (Math.Abs(params1[i] - params2[i]) > 1.0E-5f)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
-
     public class MatrixFunction
     {
         private static readonly Random Random = new Random();
@@ -43,7 +19,7 @@ namespace NeuralNetwork.API.Network
             {
                 if (_cudaWeight != null)
                 {
-                    _weight = Matrix<float>.Build.Dense(_weight.RowCount, _weight.ColumnCount, (float[]) _cudaWeight);
+                    _weight = Matrix<float>.Build.Dense(_weight.RowCount, _weight.ColumnCount, (float[])_cudaWeight);
                 }
 
                 return _weight;
@@ -83,34 +59,12 @@ namespace NeuralNetwork.API.Network
             }
         }
 
-        public CudaDeviceVariable<float> CudaWeight
-        {
-            get
-            {
-                if (_cudaWeight == null)
-                {
-                    _cudaWeight = Weight.ToColumnMajorArray();
-                }
-
-                return _cudaWeight;
-            }
-        }
-
-        public CudaDeviceVariable<float> CudaBias
-        {
-            get
-            {
-                if (_cudaBias == null)
-                {
-                    _cudaBias = Bias.ToColumnMajorArray();
-                }
-
-                return _cudaBias;
-            }
-        }
+        public CudaDeviceVariable<float> CudaWeight => _cudaWeight ??= Weight.ToColumnMajorArray();
+        public CudaDeviceVariable<float> CudaBias => _cudaBias ??= Bias.ToColumnMajorArray();
 
         private CudaDeviceVariable<float> _cudaWeight;
         private CudaDeviceVariable<float> _cudaBias;
+
         private Matrix<float> _weight;
         private Matrix<float> _bias;
 
@@ -141,13 +95,6 @@ namespace NeuralNetwork.API.Network
             BiasColumnCount = Bias.ColumnCount;
         }
 
-        public Matrix<float> Calculate(Matrix<float> input)
-        {
-            var temp = Weight * input + Bias;
-            return Matrix<float>.Build.Dense(temp.RowCount, temp.ColumnCount, (y, x) => 1.0f / (1.0f + (float)Math.Exp(-temp[y, x])));
-            //return Matrix<float>.Build.Dense(temp.RowCount, temp.ColumnCount, (y, x) => temp[y, x]);
-        }
-
         private float GetRandom()
         {
             lock (Random)
@@ -156,5 +103,10 @@ namespace NeuralNetwork.API.Network
             }
         }
 
+        public void Dispose()
+        {
+            _cudaWeight?.Dispose();
+            _cudaBias?.Dispose();
+        }
     }
 }

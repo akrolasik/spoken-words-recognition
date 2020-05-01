@@ -79,7 +79,7 @@ export class DataValidatorComponent implements OnInit, AfterViewInit {
   }
 
   checkIfAllAreVerified() {
-    const allVerified = this.state.rawRecording.words.filter(x => x.validated).length === this.state.rawRecording.words.length;
+    const allVerified = this.state.rawRecording.words.filter(x => x.validated != null).length === this.state.rawRecording.words.length;
     if (allVerified) {
       this.uploadProcessedData();
     }
@@ -87,7 +87,7 @@ export class DataValidatorComponent implements OnInit, AfterViewInit {
   }
 
   async uploadProcessedData() {
-    this.apiClient.putWords(this.state.rawRecording.id,  this.state.rawRecording.words );
+    this.apiClient.putWords(this.state.rawRecording.id, this.state.rawRecording.words.filter(x => x.validated != null));
     this.next();
   }
 

@@ -11,8 +11,8 @@ namespace NeuralNetwork.API.Network
         public int RowCount;
         public int ColumnCount;
 
-        public int ElementRowCount => GetElement(0, 0).RowCount;
-        public int ElementColumnCount => GetElement(0, 0).ColumnCount;
+        public int ElementRowCount;
+        public int ElementColumnCount;
         public int ElementsParametersCount => ElementRowCount * ElementColumnCount;
 
         public int ParametersRowCount => RowCount * ElementRowCount;
@@ -74,7 +74,7 @@ namespace NeuralNetwork.API.Network
                     {
                         for (var y = 0; y < RowCount; y++)
                         {
-                            parameters.AddRange(GetElement(y, x).Column(c));
+                            parameters.AddRange(Elements[y * ColumnCount + x].Column(c));
                         }
                     }
                 }
@@ -113,6 +113,9 @@ namespace NeuralNetwork.API.Network
                     Elements.Add(init(y, x));
                 }
             }
+
+            ElementRowCount = Elements.First().RowCount;
+            ElementColumnCount = Elements.First().ColumnCount;
         }
 
         public ParallelMatrices(int rowCount, int columnCount, List<Matrix<float>> elements)
@@ -120,149 +123,24 @@ namespace NeuralNetwork.API.Network
             RowCount = rowCount;
             ColumnCount = columnCount;
             Elements = elements;
-        }
 
-        public void UpdateElements()
-        {
-            if (_cuda != null)
-            {
-                _parameters = _cuda;
-            }
+            ElementRowCount = Elements.First().RowCount;
+            ElementColumnCount = Elements.First().ColumnCount;
         }
 
         public Matrix<float> GetElement(int y, int x)
         {
-            return Elements[y * ColumnCount + x];
+            var skip = x * ElementColumnCount * ParametersRowCount + y * ElementRowCount;
+
+            var array = Enumerable.Range(0, ElementColumnCount).SelectMany(i =>
+                ((float[])_cuda).Skip(skip + i * ParametersRowCount).Take(ElementRowCount)).ToArray();
+
+            return Matrix<float>.Build.Dense(ElementRowCount, ElementColumnCount, array);
         }
 
-        internal static bool Compare(ParallelMatrices output1, ParallelMatrices output2)
+        public void Dispose()
         {
-            var params1 = output1.Parameters;
-            var params2 = output2.Parameters;
-
-            if (params1.Length != params2.Length)
-            {
-                return false;
-            }
-
-            for (var i = 0; i < params1.Length; i++)
-            {
-                if (Math.Abs(params1[i] - params2[i]) > 1.0E-5f)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            _cuda?.Dispose();
         }
-
-
-        //public void Increment(ParallelMatrices other)
-        //{
-        //    for (var y = 0; y < RowCount; y++)
-        //    {
-        //        for (var x = 0; x < ColumnCount; x++)
-        //        {
-        //            Elements[y * ColumnCount + x] += other.GetElement(y, x);
-        //        }
-        //    }
-        //}
-
-        //public void Decrement(ParallelMatrices other)
-        //{
-        //    for (var y = 0; y < RowCount; y++)
-        //    {
-        //        for (var x = 0; x < ColumnCount; x++)
-        //        {
-        //            Elements[y * ColumnCount + x] += other.GetElement(y, x);
-        //        }
-        //    }
-        //}
-
-        //public static Matrix<float> DefaultMultiplicationResult(Matrix<float> a, Matrix<float> b)
-        //{
-        //    return Matrix<float>.Build.Dense(a.RowCount, b.ColumnCount);
-        //}
-
-        //public static ParallelMatrices Multiply(ParallelMatrices a, ParallelMatrices b)
-        //{
-        //    if (a.ColumnCount != b.RowCount)
-        //    {
-        //        throw new ArgumentException();
-        //    }
-
-        //    return new ParallelMatrices(a.RowCount, b.ColumnCount, (y, x) =>
-        //    {
-        //        var element = DefaultMultiplicationResult(a.DefaultElement, b.DefaultElement);
-
-        //        for (var i = 0; i < a.ColumnCount; i++)
-        //        {
-        //            element += a.GetElement(y, i) * b.GetElement(i, x);
-        //        }
-
-        //        return element;
-        //    });
-        //}
-
-        //public void SetParameters(float[] parameters)
-        //{
-        //    for (var y = 0; y < RowCount; y++)
-        //    {
-        //        for (var x = 0; x < ColumnCount; x++)
-        //        {
-        //            var skip = x * ElementColumnCount * ParametersRowCount + y * ElementRowCount;
-
-        //            var array = Enumerable.Range(0, ElementColumnCount).SelectMany(i =>
-        //                parameters.Skip(skip + i * ParametersRowCount).Take(ElementRowCount)).ToArray();
-
-        //            Elements[y * ColumnCount + x] = Matrix<float>.Build.Dense(ElementRowCount, ElementColumnCount, array);
-        //        }
-        //    }
-        //}
-
-        //public static ParallelMatrices MultiplyExplicit(ParallelMatrices a, ParallelMatrices b)
-        //{
-        //    if (a.ParametersColumnCount != b.ParametersRowCount)
-        //    {
-        //        throw new ArgumentException();
-        //    }
-
-        //    var parametersA = a.Parameters;
-        //    var parametersB = b.Parameters;
-
-        //    var outputRowCount = a.ParametersRowCount;
-        //    var outputColumnCount = b.ParametersColumnCount;
-        //    var commonDim = a.ParametersColumnCount;
-
-        //    var parameters = new float[outputRowCount * outputColumnCount];
-
-        //    for (var index = 0; index < parameters.Length; index++)
-        //    {
-        //        var sum = 0.0f;
-
-        //        for (var i = 0; i < commonDim; i++)
-        //        {
-        //            var xa = i;
-        //            var ya = index % outputRowCount;
-
-        //            var xb = index / outputRowCount;
-        //            var yb = i;
-
-        //            var ia = xa * outputRowCount + ya;
-        //            var ib = xb * commonDim + yb;
-
-        //            sum += parametersA[ia] * parametersB[ib];
-        //        }
-
-        //        parameters[index] = sum;
-        //    }
-
-        //    var result = new ParallelMatrices(a.RowCount, b.ColumnCount, (y, x) => Matrix<float>.Build.Dense(a.ElementRowCount, b.ElementColumnCount));
-
-        //    result.SetParameters(parameters);
-
-        //    return result;
-        //}
-
     }
 }

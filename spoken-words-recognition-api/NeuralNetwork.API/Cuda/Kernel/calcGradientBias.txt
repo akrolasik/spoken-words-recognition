@@ -17,6 +17,6 @@ calcGradientBias(
 			sum += difference[i * weightRowCount + index];
 		}
 
-		biasGradient[index] = sum / inputColumnCount * gradientFactor;
+		biasGradient[index] = sum * gradientFactor;
 	}
 }

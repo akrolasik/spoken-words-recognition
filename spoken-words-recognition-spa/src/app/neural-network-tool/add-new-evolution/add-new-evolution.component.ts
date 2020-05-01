@@ -59,23 +59,15 @@ export class AddNewEvolutionComponent implements OnInit {
         outputCount: 25
       },
       trainingConfig: {
-        useGpu: true,
-        wordSetSize: 25,
-        calculationThreadCount: 10,
-        savingThreadCount: 10,
-        populationSize: 10,
+        wordSetSize: 100,
+        maxCalculationTimeInMinutes: null,
+        gradientFactor: 0.001
       },
       inputConfig: {
         packageFileName: null,
         wordsIncluded: [],
         accentsIncluded: [],
         modificationsIncluded: []
-      },
-      gradientConfig: {
-        gradientFactor: 0.001,
-        weightGradientFactor: 1,
-        biasGradientFactor: 1,
-        inputGradientFactor: 1,
       }
     };
 

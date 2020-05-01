@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, Pipe, PipeTransform, OnDestroy } from '@angular/core';
 import { Recording } from 'src/app/services/api-client/Recording';
 import { EvolutionService } from 'src/app/services/evolution.service';
+import { map } from 'rxjs/operators';
 
 export class InputResolution {
   public width: number;
@@ -24,19 +25,9 @@ export class InputConfig {
 }
 
 export class TrainingConfig {
-  public useGpu: boolean;
   public wordSetSize: number;
-  public calculationThreadCount: number;
-  public populationSize: number;
-  public savingThreadCount: number;
-  public iterationLimit?: number;
-}
-
-export class GradientConfig {
+  public maxCalculationTimeInMinutes?: number;
   public gradientFactor: number;
-  public weightGradientFactor: number;
-  public biasGradientFactor: number;
-  public inputGradientFactor: number;
 }
 
 export class PopulationConfig {
@@ -49,11 +40,35 @@ export class Aggregation {
   public avg: number;
 }
 
+export class Output {
+  public values: number[];
+  public expectedOutputIndex: number;
+  public cost: number;
+  public iterationCount: number;
+}
+
+export class OutputStatistics {
+  public words: Map<string, Output>;
+}
+
+export class ValuesDistribution {
+  public min: number;
+  public max: number;
+  public buckets: number[];
+}
+
+export class LayerStatistics {
+  public weight: ValuesDistribution;
+  public bias: ValuesDistribution;
+  public output: ValuesDistribution;
+}
+
 export class EvolutionStatistics {
-  public currentIteration: number;
+  public iterationCount: number;
   public totalComputingTimeInSeconds: number;
-  public output: Aggregation[];
-  public cost: number[];
+  public output: OutputStatistics;
+  public costHistory: Aggregation[];
+  public layers: LayerStatistics[];
 }
 
 export class EvolutionConfig {
@@ -62,7 +77,6 @@ export class EvolutionConfig {
   public isRunning: boolean;
   public trainingConfig: TrainingConfig;
   public networkConfig: NetworkConfig;
-  public gradientConfig: GradientConfig;
   public inputConfig: InputConfig;
 }
 
@@ -100,11 +114,17 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
 
   @Input() evolution: EvolutionConfig;
 
-  statistics: EvolutionStatistics[];
+  statistics: EvolutionStatistics;
   recordings: Recording[];
   totalComputingTime: string;
+  tempIterationsPerSecond: number;
+
+  lastUpdateTime: any;
+  lastIterationCount: number;
+  lastTotalComputingTimeInSeconds: number;
 
   costChartOptions: any;
+  wordsChartOptions: any;
   interval: NodeJS.Timer;
 
   constructor(private evolutionService: EvolutionService) {}
@@ -114,53 +134,122 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-
+    this.update();
     this.interval = setInterval(() => {
+      this.update();
+    }, 10000);
+  }
 
-      if(!this.evolution.isRunning) return;
+  update() {
+    if(!this.evolution.isRunning) return;
 
       this.evolutionService.getStatistics(this.evolution.id).subscribe(statistics => {
+
+        console.log(statistics);
+
         this.statistics = statistics;
 
-        this.costChartOptions = {
-          grid: {
-            left: '10px',
-            right: '30px',
-            top: '10px',
-            bottom: '20px',
-            containLabel: true
-          },
-          xAxis: {
-              type: 'log'
-          },
-          yAxis: {
-              type: 'log'
-          },
-          series: []
-        };
+        this.updateWordsChart();
+        this.updateCostChart();
 
-        for(let s = 0; s < statistics.length; s++) {
+        this.tempIterationsPerSecond = 
+          (statistics.iterationCount - this.lastIterationCount) / 
+          (statistics.totalComputingTimeInSeconds - this.lastTotalComputingTimeInSeconds);
 
-          let serie = {
-            data: [],
-            type: 'line',
-            smooth: true,
-            itemStyle: {
-              opacity: 0
-            },
-            lineStyle: {
-              color: 'red'
-            }
-          };
-
-          for(let i = 0; i < statistics[s].cost.length; i++) {
-            serie.data.push([Math.pow(2, i + 1) - 1, statistics[s].cost[i]]);
-          }
-
-          this.costChartOptions.series.push(serie);
+        if(performance.now() - this.lastUpdateTime > 60000 || this.lastUpdateTime == null) {
+          this.lastIterationCount = statistics.iterationCount;
+          this.lastTotalComputingTimeInSeconds = statistics.totalComputingTimeInSeconds;
+          this.lastUpdateTime = performance.now();
         }
       })
-    }, 1000);
+  }
+
+  updateWordsChart() {
+    this.wordsChartOptions = {
+      grid: {
+        left: '10px',
+        right: '30px',
+        top: '10px',
+        bottom: '20px',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: []
+      },
+      yAxis: {
+        type: 'value'
+      },
+      series: []
+    };
+
+    let iterationCount = {
+      data: [],
+      type: 'bar'
+    };
+
+    let keys = Object.keys(this.statistics.output.words);
+    for(let i = 0; i < keys.length; i++) {
+      this.wordsChartOptions.xAxis.data.push(i);
+      iterationCount.data.push(this.statistics.output.words[keys[i]].iterationCount);
+    }
+
+    this.wordsChartOptions.series.push(iterationCount);
+
+    console.log(JSON.stringify(this.wordsChartOptions));
+  }
+
+  updateCostChart() {
+    this.costChartOptions = {
+      grid: {
+        left: '10px',
+        right: '30px',
+        top: '10px',
+        bottom: '20px',
+        containLabel: true
+      },
+      xAxis: {
+          type: 'log'
+      },
+      yAxis: {
+          type: 'log'
+      },
+      series: []
+    };
+
+    let max = {
+      data: [],
+      type: 'line',
+      smooth: true,
+      itemStyle: {
+        opacity: 0
+      },
+      lineStyle: {
+        color: 'red',
+        type: 'dashed'
+      }
+    };
+
+    let avg = {
+      data: [],
+      type: 'line',
+      smooth: true,
+      itemStyle: {
+        opacity: 0
+      },
+      lineStyle: {
+        color: 'red'
+      }
+    };
+
+    for(let i = 0; i < this.statistics.costHistory.length; i++) {
+      let iteration = Math.pow(2, i + 1) - 1;
+      avg.data.push([iteration, this.statistics.costHistory[i].avg]);
+      max.data.push([iteration, this.statistics.costHistory[i].max]);
+    }
+
+    this.costChartOptions.series.push(max);
+    this.costChartOptions.series.push(avg);
   }
 
   words() {

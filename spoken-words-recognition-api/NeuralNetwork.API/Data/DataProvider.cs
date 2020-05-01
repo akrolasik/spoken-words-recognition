@@ -16,7 +16,6 @@ namespace NeuralNetwork.API.Data
 {
     public class DataProvider
     {
-        private static readonly Random Random = new Random();
         private const string DefaultDirectory = "C:/Users/plalkro/Downloads";
 
         public List<TrainingData> TrainingData;
@@ -55,13 +54,18 @@ namespace NeuralNetwork.API.Data
             }).ToList();
         }
 
-        public List<TrainingData> GetRandomDataSet()
+        public List<TrainingData> GetRandomDataSet(int count, List<TrainingData> dataToIgnore = null)
         {
             var data = TrainingData.Select(x => x).ToList();
 
+            if (dataToIgnore != null)
+            {
+                data.RemoveAll(dataToIgnore.Contains);
+            }
+
             var set = new List<TrainingData>();
 
-            while (set.Count < _evolutionConfig.TrainingConfig.WordSetSize)
+            while (set.Count < count)
             {
                 var index = _random.Next(data.Count);
                 set.Add(data[index]);
@@ -113,8 +117,8 @@ namespace NeuralNetwork.API.Data
 
             // var blurTsv = string.Join('\n', Enumerable.Range(0, blurred.RowCount).Select(x => string.Join('\t', blurred.Row(x).Select(y => y))));
 
-            var downsized = Matrix<float>.Build.Dense(inputResolution.Width, inputResolution.Height,
-                (y, x) => Downsize(blurred, frequenciesRows, frequenciesColumns, inputResolution.Width, inputResolution.Height, y, x));
+            var resized = Matrix<float>.Build.Dense(inputResolution.Width, inputResolution.Height,
+                (y, x) => Resize(blurred, frequenciesRows, frequenciesColumns, inputResolution.Width, inputResolution.Height, y, x));
 
             // var downsizedTsv = string.Join('\n', Enumerable.Range(0, downsized.RowCount).Select(x => string.Join('\t', downsized.Row(x).Select(y => y))));
 
@@ -122,21 +126,34 @@ namespace NeuralNetwork.API.Data
             {
                 var y = i / inputResolution.Height;
                 var x = i % inputResolution.Height;
-                return downsized[y, x]; // GetRandom();
+                return resized[y, x];
             });
 
             return result;
         }
 
-        private float GetRandom()
+        private float Blur(FrequenciesChunk[] frequencies, int y0, int x0, int halfSize)
         {
-            lock (Random)
+            var sum = 0.0;
+            var weight = 0.0;
+
+            for (var y = y0 - halfSize; y <= y0 + halfSize; y++)
             {
-                return (float)(Random.NextDouble() * 2 - 1);
+                for (var x = x0 - halfSize; x <= x0 + halfSize; x++)
+                {
+                    if (y >= 0 && y < frequencies.Length && x >= 0 && x < frequencies[y].Data.Length)
+                    {
+                        var w = 1.0 / (1.0 + Math.Abs(x - x0)) / (1.0 + Math.Abs(y - y0));
+                        sum += frequencies[y].Data[x] / 256.0 * w;
+                        weight += w;
+                    }
+                }
             }
+
+            return (float)(sum / weight);
         }
 
-        private float Downsize(Matrix<float> input, int inputHeight, int inputWidth, int outputHeight, int outputWidth, int y, int x)
+        private float Resize(Matrix<float> input, int inputHeight, int inputWidth, int outputHeight, int outputWidth, int y, int x)
         {
             var ry = (float)inputHeight / outputHeight;
             var rx = (float)inputWidth / outputWidth;
@@ -164,27 +181,6 @@ namespace NeuralNetwork.API.Data
 
                         weight += w;
                         sum += input[fy, fx] * w;
-                    }
-                }
-            }
-
-            return (float)(sum / weight);
-        }
-
-        private float Blur(FrequenciesChunk[] frequencies, int y0, int x0, int halfSize)
-        {
-            var sum = 0.0;
-            var weight = 0.0;
-
-            for (var y = y0 - halfSize; y <= y0 + halfSize; y++)
-            {
-                for (var x = x0 - halfSize; x <= x0 + halfSize; x++)
-                {
-                    if (y >= 0 && y < frequencies.Length && x >= 0 && x < frequencies[y].Data.Length)
-                    {
-                        var w = 1.0 / (1.0 + Math.Abs(x - x0)) / (1.0 + Math.Abs(y - y0));
-                        sum += frequencies[y].Data[x] / 256.0 * w;
-                        weight += w;
                     }
                 }
             }
