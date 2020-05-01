@@ -4,6 +4,7 @@ using ManagedCuda;
 using MathNet.Numerics.LinearAlgebra;
 using NeuralNetwork.API.Config;
 using NeuralNetwork.API.Cuda;
+using NeuralNetwork.API.Data;
 
 namespace NeuralNetwork.API.Network
 {
@@ -17,7 +18,6 @@ namespace NeuralNetwork.API.Network
         private List<ParallelMatrices> _difference;
 
         private readonly List<float> _layerGradients;
-        private readonly EvolutionConfig _evolutionConfig;
 
         private CudaStream _calcNeuronValuesStream;
         private CudaStream _calcExpectedDifferenceStream;
@@ -25,14 +25,6 @@ namespace NeuralNetwork.API.Network
         private CudaStream _calcGradientBiasStream;
         private CudaStream _calcExpectedOutputStream;
         private CudaStream _applyGradientStream;
-
-        private GradientParams[] _weightGradientParams;
-        private GradientParams[] _biasGradientParams;
-        private NeuronValueParams[] _neuronValueParams;
-        private ExpectedDifferenceParams[] _expectedDifferenceParams;
-        private GradientBiasParams[] _gradientBiasParams;
-        private GradientWeightParams[] _gradientWeightParams;
-        private ExpectedOutputParams[] _expectedOutputParams;
 
         public CudaStream CudaNeuronValuesStream => _calcNeuronValuesStream ??= new CudaStream();
         public CudaStream CudaExpectedDifferenceStream => _calcExpectedDifferenceStream ??= new CudaStream();
@@ -43,8 +35,6 @@ namespace NeuralNetwork.API.Network
 
         public NeuralNetwork(EvolutionConfig evolutionConfig)
         {
-            _evolutionConfig = evolutionConfig;
-
             var dimensions = new List<int> { evolutionConfig.NetworkConfig.InputCount };
             dimensions.AddRange(evolutionConfig.NetworkConfig.HiddenLayersNeuronCount);
             dimensions.Add(evolutionConfig.NetworkConfig.OutputCount);
@@ -59,9 +49,8 @@ namespace NeuralNetwork.API.Network
             _layerGradients = Enumerable.Range(0, Layers.Count).Select(GetLayerGradient).ToList();
         }
 
-        public NeuralNetwork(EvolutionConfig evolutionConfig, List<MatrixFunction> layers)
+        public NeuralNetwork(List<MatrixFunction> layers)
         {
-            _evolutionConfig = evolutionConfig;
             Layers = layers;
 
             _layerGradients = Enumerable.Range(0, Layers.Count).Select(GetLayerGradient).ToList();
@@ -83,9 +72,9 @@ namespace NeuralNetwork.API.Network
             _difference.ForEach(x => x.Dispose());
         }
 
-        public void PrepareCuda(CudaClient _cudaClient)
+        public void PrepareCuda(CudaClient _cudaClient, DataProvider dataProvider)
         {
-            Output = Layers.Select(layer => new ParallelMatrices(1, _evolutionConfig.TrainingConfig.WordSetSize, 
+            Output = Layers.Select(layer => new ParallelMatrices(1, dataProvider.TrainingData.Count, 
                 (y, x) => Matrix<float>.Build.Dense(layer.Weight.RowCount, 1))).ToList();
 
             Gradient = Layers.Select(layer => new MatrixFunction
@@ -171,7 +160,7 @@ namespace NeuralNetwork.API.Network
                 WeightRowCount = weightRowCount,
                 WeightColumnCount = weightColumnCount,
                 InputColumnCount = input.ParametersColumnCount,
-                GradientFactor = layerGradient * _evolutionConfig.TrainingConfig.GradientFactor / input.ParametersColumnCount,
+                GradientFactor = layerGradient / input.ParametersColumnCount,
             };
 
             _cudaClient.CalcGradientWeight(CudaGradientWeightStream, gradientWeightParams);
@@ -190,7 +179,7 @@ namespace NeuralNetwork.API.Network
                 BiasGradient = Gradient[layer].CudaBias.DevicePointer,
                 WeightRowCount = weightRowCount,
                 InputColumnCount = input.ParametersColumnCount,
-                GradientFactor = layerGradient * _evolutionConfig.TrainingConfig.GradientFactor / input.ParametersColumnCount / weightColumnCount,
+                GradientFactor = layerGradient / input.ParametersColumnCount / weightColumnCount,
             };
 
             _cudaClient.CalcGradientBias(CudaGradientBiasStream, gradientBiasParams);
@@ -212,7 +201,7 @@ namespace NeuralNetwork.API.Network
                 WeightColumnCount = weightRowCount,
                 ExpectedRowCount = expectedRowCount,
                 ExpectedColumnCount = expectedColumnCount,
-                GradientFactor = layerGradient * _evolutionConfig.TrainingConfig.GradientFactor
+                GradientFactor = layerGradient
             };
 
             _cudaClient.CalcExpectedOutput(CudaExpectedOutputStream, expectedOutputParams);

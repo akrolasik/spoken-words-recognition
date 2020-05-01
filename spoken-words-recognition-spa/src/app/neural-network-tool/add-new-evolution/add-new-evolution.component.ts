@@ -58,11 +58,6 @@ export class AddNewEvolutionComponent implements OnInit {
         hiddenLayersNeuronCount: [400, 100],
         outputCount: 25
       },
-      trainingConfig: {
-        wordSetSize: 100,
-        maxCalculationTimeInMinutes: null,
-        gradientFactor: 0.001
-      },
       inputConfig: {
         packageFileName: null,
         wordsIncluded: [],

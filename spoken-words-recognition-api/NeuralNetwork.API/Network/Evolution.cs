@@ -23,10 +23,8 @@ namespace NeuralNetwork.API.Network
         private CancellationTokenSource _cancellationTokenSource;
         
         private bool _isSavingProcessWorking;
-        private bool _firstRunAfterDataShuffle;
 
         private CudaClient _cudaClient;
-        private bool _newSetIsReady;
 
         private string BasePath => $"temp/evolutions/{Config.Id}";
         private string TempPath => $"temp/evolutions/{Config.Id}_temp";
@@ -89,7 +87,7 @@ namespace NeuralNetwork.API.Network
                 layers.Add(new MatrixFunction(weightMatrix, biasMatrix));
             }
 
-            return new NeuralNetwork(Config, layers);
+            return new NeuralNetwork(layers);
         }
 
         private EvolutionStatistics LoadStatistics(string path)
@@ -173,45 +171,20 @@ namespace NeuralNetwork.API.Network
             Config.IsRunning = true;
 
             _cancellationTokenSource = new CancellationTokenSource();
-            _cudaClient = new CudaClient(Config);
+            _cudaClient = new CudaClient(Config, _dataProvider);
 
-            NeuralNetwork.PrepareCuda(_cudaClient);
-            ShuffleData(Config.TrainingConfig.WordSetSize);
-
-            _cudaClient.UpdateData(true);
-            _firstRunAfterDataShuffle = true;
-            _newSetIsReady = false;
-
-            PrepareShuffleData();
+            NeuralNetwork.PrepareCuda(_cudaClient , _dataProvider);
 
             EvolutionStatistics.StartMeasuringTime();
 
             while (!_cancellationTokenSource.IsCancellationRequested)
             {
-                if (Config.TrainingConfig.MaxCalculationTimeInMinutes <= EvolutionStatistics.TotalComputingTimeInSeconds)
-                {
-                    Config.TrainingConfig.MaxCalculationTimeInMinutes = null;
-                    _cancellationTokenSource.Cancel();
-                    break;
-                }
-
-                if (_newSetIsReady)
-                {
-                    // _cudaClient.UpdateData();
-                    _firstRunAfterDataShuffle = true;
-                    _newSetIsReady = false;
-
-                    PrepareShuffleData();
-                }
-
                 Calculate();
 
-                EvolutionStatistics.Update(NeuralNetwork, _cudaClient.TrainingData, _firstRunAfterDataShuffle);
-
-                _firstRunAfterDataShuffle = false;
+                EvolutionStatistics.Update(NeuralNetwork, _dataProvider.TrainingData);
             }
 
-            EvolutionStatistics.Update(NeuralNetwork, _cudaClient.TrainingData, true);
+            EvolutionStatistics.Update(NeuralNetwork, _dataProvider.TrainingData);
             Save().Wait();
 
             _cudaClient.Dispose();
@@ -220,34 +193,17 @@ namespace NeuralNetwork.API.Network
             Config.IsRunning = false;
         }
 
-        private void PrepareShuffleData()
-        {
-            _ = Task.Run(() => ShuffleData((int)(Config.TrainingConfig.WordSetSize * 0.1)));
-        }
-
-        private void ShuffleData(int count)
-        {
-            _cudaClient.UpdateData(_dataProvider.GetRandomDataSet(Math.Min(count, _dataProvider.TrainingData.Count), _cudaClient.TrainingData));
-
-            _newSetIsReady = true;
-        }
-
         private void Calculate()
         {
             for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
             {
                 NeuralNetwork.CalcNeuronValues(_cudaClient, l);
-
-                if (_firstRunAfterDataShuffle)
-                    NeuralNetwork.CudaNeuronValuesStream.Synchronize();
             }
 
             for (var l = Config.NetworkConfig.HiddenLayersNeuronCount.Length; l >= 0; l--)
             {
                 NeuralNetwork.CalcExpectedDifference(_cudaClient, l);
-
-                if (_firstRunAfterDataShuffle)
-                    NeuralNetwork.CudaExpectedDifferenceStream.Synchronize();
+                NeuralNetwork.CudaExpectedDifferenceStream.Synchronize();
 
                 NeuralNetwork.CalcGradientWeight(_cudaClient, l);
                 NeuralNetwork.CalcGradientBias(_cudaClient, l);
@@ -255,19 +211,15 @@ namespace NeuralNetwork.API.Network
                 if (l > 0)
                     NeuralNetwork.CalcExpectedOutput(_cudaClient, l);
 
-                if (_firstRunAfterDataShuffle)
-                {
-                    NeuralNetwork.CudaGradientWeightStream.Synchronize();
-                    NeuralNetwork.CudaGradientBiasStream.Synchronize();
-                    NeuralNetwork.CudaExpectedDifferenceStream.Synchronize();
-                }
+                NeuralNetwork.CudaGradientWeightStream.Synchronize();
+                NeuralNetwork.CudaGradientBiasStream.Synchronize();
+                NeuralNetwork.CudaExpectedDifferenceStream.Synchronize();
             }
 
             for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
                 NeuralNetwork.ApplyGradient(_cudaClient, l);
 
-            if (_firstRunAfterDataShuffle)
-                NeuralNetwork.CudaApplyGradientStream.Synchronize();
+            NeuralNetwork.CudaApplyGradientStream.Synchronize();
         }
 
         public void CancelCalculation()

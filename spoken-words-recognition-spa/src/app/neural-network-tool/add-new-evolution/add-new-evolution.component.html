@@ -118,47 +118,6 @@
                 </div>
             </div>
         </div>
-        <div style="margin-top: 20px">
-            <b>Training</b>
-        </div>
-        <div class="row">
-            <div class="col-6">
-                <div style="margin: 12px 20px 0 15px;">Word set size: </div>
-            </div>
-            <div class="col-6">
-                <div style="margin-top: 10px;">
-                    <input 
-                        class="size-large shape-rectangle" 
-                        style="width: 70px;" 
-                        type="number" 
-                        [(ngModel)]="evolution.trainingConfig.wordSetSize"/>
-                </div>
-            </div>
-            <div class="col-6">
-                <div style="margin: 10px 20px 0 15px;">Gradient factor: </div>
-            </div>
-            <div class="col-6">
-                <div style="margin-top: 10px;">
-                    <input 
-                        class="size-large shape-rectangle" 
-                        style="width: 70px;" 
-                        [(ngModel)]="evolution.trainingConfig.gradientFactor"
-                        type="number"/>
-                </div>
-            </div>
-            <div class="col-6">
-                <div style="margin: 12px 20px 0 15px;">Max calculation time in minutes:</div>
-            </div>
-            <div class="col-6">
-                <div style="margin-top: 10px;">
-                    <input 
-                        class="size-large shape-rectangle" 
-                        style="width: 70px;" 
-                        [(ngModel)]="evolution.trainingConfig.maxCalculationTimeInMinutes"
-                        type="number"/>
-                </div>
-            </div>
-        </div>
         <button style="margin-top: 30px;" [disabled]="!dataService.isLoaded()" nbButton status="info" (click)="addNewEvolution(); blurActiveElement();">Add Evolution</button>
     </nb-card-body>
 </nb-card>

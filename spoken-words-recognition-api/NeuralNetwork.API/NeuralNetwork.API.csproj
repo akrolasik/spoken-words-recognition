@@ -19,9 +19,6 @@
     <None Update="Cuda\Kernel\applyGradient.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Cuda\Kernel\replaceData.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Cuda\Kernel\calcExpectedDif.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

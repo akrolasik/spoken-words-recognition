@@ -24,12 +24,6 @@ export class InputConfig {
   public modificationsIncluded: string[];
 }
 
-export class TrainingConfig {
-  public wordSetSize: number;
-  public maxCalculationTimeInMinutes?: number;
-  public gradientFactor: number;
-}
-
 export class PopulationConfig {
   public unitCount: number;
 }
@@ -75,7 +69,6 @@ export class EvolutionConfig {
   public id: string;
   public name: string;
   public isRunning: boolean;
-  public trainingConfig: TrainingConfig;
   public networkConfig: NetworkConfig;
   public inputConfig: InputConfig;
 }
@@ -119,10 +112,6 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
   totalComputingTime: string;
   tempIterationsPerSecond: number;
 
-  lastUpdateTime: any;
-  lastIterationCount: number;
-  lastTotalComputingTimeInSeconds: number;
-
   costChartOptions: any;
   wordsChartOptions: any;
   interval: NodeJS.Timer;
@@ -137,7 +126,7 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
     this.update();
     this.interval = setInterval(() => {
       this.update();
-    }, 10000);
+    }, 1000);
   }
 
   update() {
@@ -149,18 +138,8 @@ export class EvolutionTileComponent implements OnInit, OnDestroy {
 
         this.statistics = statistics;
 
-        this.updateWordsChart();
+        //this.updateWordsChart();
         this.updateCostChart();
-
-        this.tempIterationsPerSecond = 
-          (statistics.iterationCount - this.lastIterationCount) / 
-          (statistics.totalComputingTimeInSeconds - this.lastTotalComputingTimeInSeconds);
-
-        if(performance.now() - this.lastUpdateTime > 60000 || this.lastUpdateTime == null) {
-          this.lastIterationCount = statistics.iterationCount;
-          this.lastTotalComputingTimeInSeconds = statistics.totalComputingTimeInSeconds;
-          this.lastUpdateTime = performance.now();
-        }
       })
   }
 

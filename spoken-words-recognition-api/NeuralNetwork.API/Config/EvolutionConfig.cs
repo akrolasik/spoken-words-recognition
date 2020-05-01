@@ -9,7 +9,6 @@ namespace NeuralNetwork.API.Config
         public bool IsRunning { get; set; }
 
         public NetworkConfig NetworkConfig { get; set; }
-        public TrainingConfig TrainingConfig { get; set; }
         public InputConfig InputConfig { get; set; }
     }
 }

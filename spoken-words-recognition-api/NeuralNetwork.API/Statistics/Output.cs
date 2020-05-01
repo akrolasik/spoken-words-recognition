@@ -7,7 +7,6 @@ namespace NeuralNetwork.API.Statistics
     public class Output
     {
         public float[] Values { get; set; }
-        public int IterationCount { get; set; }
         public int ExpectedOutputIndex { get; set; }
         public float Cost { get; set; }
 

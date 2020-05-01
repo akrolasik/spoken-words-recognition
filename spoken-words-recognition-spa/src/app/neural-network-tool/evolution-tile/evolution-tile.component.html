@@ -10,7 +10,7 @@
         <span *ngIf="statistics != null" style="margin-left: 10px;">
             <span style="font-weight: normal; font-size: 15px;">Total time: <b>{{statistics.totalComputingTimeInSeconds | time}}</b></span>
             <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iteration: <b>{{statistics.iterationCount}}</b></span>
-            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./s: <b>{{tempIterationsPerSecond | number: '1.0-0'}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./s: <b>{{statistics.iterationCount / statistics.totalComputingTimeInSeconds | number: '1.0-0'}}</b></span>
         </span>
         <div style="float: right; margin: -5px 0 -15px 0;">
             <button 
@@ -27,9 +27,6 @@
     <nb-card-body style="padding: 0; overflow: hidden;">
         <div class="row">
             <nb-tabset style="width: 100%;" fullWidth>
-                <nb-tab tabTitle="Words">
-                    <div echarts [options]="wordsChartOptions" style="height: 450px; margin: 20px 0 0 0;"></div>
-                </nb-tab>
                 <nb-tab tabTitle="Cost">
                     <div echarts [options]="costChartOptions" style="height: 450px; margin: 20px 0 0 0;"></div>
                 </nb-tab>
@@ -42,8 +39,8 @@
                 </nb-tab>
                 <nb-tab tabTitle="Parameters">
                     <div style="height: 450px; margin: 20px;">
-                        <div class="row">
-                            <div class="col-6">
+                        <!-- <div class="row">
+                            <div class="col-6"> -->
                                 <span>
                                     <b>Details</b>
                                 </span>
@@ -100,26 +97,8 @@
                                     Output count: <b>{{evolution.networkConfig.outputCount}}</b>
                                 </span>
                                 <div style="height: 20px"></div>
-                            </div>
-                            <div class="col-6">
-                                <span>
-                                    <b>Training</b>
-                                </span>
-                                <div style="height: 10px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Words set size: <b>{{evolution.trainingConfig.wordSetSize}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Gradient factor: <b>{{evolution.trainingConfig.gradientFactor}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Max calculation time in minutes: <b>{{evolution.trainingConfig.maxCalculationTimeInMinutes}}</b>
-                                </span>
-                                <div style="height: 20px"></div>
-                            </div>
-                        </div>
+                            <!-- </div>
+                        </div> -->
                     </div>
                 </nb-tab>>
             </nb-tabset>
