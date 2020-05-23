@@ -19,40 +19,23 @@ namespace NeuralNetwork.API.Network
         public readonly NeuralNetwork NeuralNetwork;
         public readonly EvolutionStatistics EvolutionStatistics;
 
-        private readonly DataProvider _dataProvider;
+        private DataProvider _dataProvider;
         private CancellationTokenSource _cancellationTokenSource;
         
-        private bool _isSavingProcessWorking;
-
         private CudaClient _cudaClient;
 
         private string BasePath => $"temp/evolutions/{Config.Id}";
-        private string TempPath => $"temp/evolutions/{Config.Id}_temp";
-        private string BackupPath => $"temp/evolutions/{Config.Id}_backup";
 
         public Evolution(EvolutionConfig evolutionConfig)
         {
             Config = evolutionConfig;
 
+            Config.State = EvolutionState.Loading;
+
             if (Directory.Exists(BasePath))
             {
-                try
-                {
-                    NeuralNetwork = LoadNeuralNetwork(BasePath);
-                    EvolutionStatistics = LoadStatistics(BasePath);
-                }
-                catch (Exception)
-                {
-                    if (Directory.Exists(BackupPath))
-                    {
-                        NeuralNetwork = LoadNeuralNetwork(BackupPath);
-                        EvolutionStatistics = LoadStatistics(BackupPath);
-                    }
-                    else
-                    {
-                        throw new Exception("Corrupted data");
-                    }
-                }
+                NeuralNetwork = LoadNeuralNetwork(BasePath);
+                EvolutionStatistics = LoadStatistics(BasePath);
             }
             else
             {
@@ -60,7 +43,7 @@ namespace NeuralNetwork.API.Network
                 EvolutionStatistics = new EvolutionStatistics();
             }
 
-            _dataProvider = new DataProvider(evolutionConfig);
+            Config.State = EvolutionState.Idle;
         }
 
         private NeuralNetwork LoadNeuralNetwork(string path)
@@ -114,44 +97,21 @@ namespace NeuralNetwork.API.Network
 
         public async Task Save()
         {
-            if (_isSavingProcessWorking) return;
-
-            _isSavingProcessWorking = true;
-
-
-            if (Directory.Exists(BackupPath))
-                Directory.Delete(BackupPath, true);
-
-            if (Directory.Exists(TempPath))
-                Directory.Delete(TempPath, true);
-
-            Directory.CreateDirectory(TempPath);
-
             SaveNeuralNetwork();
             await SaveStatistics();
-
-            if (Directory.Exists(BasePath))
-                Directory.Move(BasePath, BackupPath);
-
-            Directory.Move(TempPath, BasePath);
-
-            if (Directory.Exists(BackupPath))
-                Directory.Delete(BackupPath, true);
-
-            _isSavingProcessWorking = false;
         }
 
         private async Task SaveStatistics()
         {
             var json = JsonConvert.SerializeObject(EvolutionStatistics);
-            await File.WriteAllTextAsync($"{TempPath}/statistics.json", json);
+            await File.WriteAllTextAsync($"{BasePath}/statistics.json", json);
         }
 
         private void SaveNeuralNetwork()
         {
-            if (!Directory.Exists(TempPath))
+            if (!Directory.Exists(BasePath))
             {
-                Directory.CreateDirectory(TempPath);
+                Directory.CreateDirectory(BasePath);
             }
 
             for (var l = 0; l < NeuralNetwork.Layers.Count; l++)
@@ -160,37 +120,72 @@ namespace NeuralNetwork.API.Network
                 var biasArray = NeuralNetwork.Layers[l].Bias.ToColumnMajorArray();
                 var byteArray = weightArray.SelectMany(BitConverter.GetBytes).ToArray().ToList();
                 byteArray.AddRange(biasArray.SelectMany(BitConverter.GetBytes).ToArray());
-                using var fileStream = new FileStream($"{TempPath}/layer{l}.bin", FileMode.Create);
+                using var fileStream = new FileStream($"{BasePath}/layer{l}.bin", FileMode.Create);
                 using var stream = new BinaryWriter(fileStream);
                 stream.Write(byteArray.ToArray());
             }
         }
 
-        public void StartCalculation()
+        public void Verify()
         {
-            Config.IsRunning = true;
+            Config.State = EvolutionState.Loading;
 
-            _cancellationTokenSource = new CancellationTokenSource();
-            _cudaClient = new CudaClient(Config, _dataProvider);
+            _dataProvider = new DataProvider(Config, true);
+            _cudaClient = new CudaClient(Config, _dataProvider, true);
 
-            NeuralNetwork.PrepareCuda(_cudaClient , _dataProvider);
+            NeuralNetwork.PrepareCuda(_dataProvider, true);
 
-            EvolutionStatistics.StartMeasuringTime();
+            Config.State = EvolutionState.Running;
 
-            while (!_cancellationTokenSource.IsCancellationRequested)
+            for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
             {
-                Calculate();
-
-                EvolutionStatistics.Update(NeuralNetwork, _dataProvider.TrainingData);
+                NeuralNetwork.CalcNeuronValues(_cudaClient, l);
+                NeuralNetwork.CudaNeuronValuesStream.Synchronize();
             }
 
-            EvolutionStatistics.Update(NeuralNetwork, _dataProvider.TrainingData);
+            EvolutionStatistics.Verification.Update(NeuralNetwork, _dataProvider.TrainingData);
+
+            Config.State = EvolutionState.Saving;
+
             Save().Wait();
 
             _cudaClient.Dispose();
             NeuralNetwork.Dispose();
 
-            Config.IsRunning = false;
+            // waiting for the ui to get the data
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+
+            Config.State = EvolutionState.Idle;
+        }
+
+        public void StartCalculation()
+        {
+            Config.State = EvolutionState.Loading;
+
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            _dataProvider = new DataProvider(Config);
+            _cudaClient = new CudaClient(Config, _dataProvider);
+
+            NeuralNetwork.PrepareCuda(_dataProvider);
+            EvolutionStatistics.StartMeasuringTime();
+
+            Config.State = EvolutionState.Running;
+
+            while (!_cancellationTokenSource.IsCancellationRequested)
+            {
+                Calculate();
+                EvolutionStatistics.Update(NeuralNetwork, _dataProvider.TrainingData);
+            }
+
+            Config.State = EvolutionState.Saving;
+
+            Save().Wait();
+
+            _cudaClient.Dispose();
+            NeuralNetwork.Dispose();
+
+            Config.State = EvolutionState.Idle;
         }
 
         private void Calculate()
@@ -198,6 +193,7 @@ namespace NeuralNetwork.API.Network
             for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
             {
                 NeuralNetwork.CalcNeuronValues(_cudaClient, l);
+                NeuralNetwork.CudaNeuronValuesStream.Synchronize();
             }
 
             for (var l = Config.NetworkConfig.HiddenLayersNeuronCount.Length; l >= 0; l--)
@@ -207,9 +203,7 @@ namespace NeuralNetwork.API.Network
 
                 NeuralNetwork.CalcGradientWeight(_cudaClient, l);
                 NeuralNetwork.CalcGradientBias(_cudaClient, l);
-
-                if (l > 0)
-                    NeuralNetwork.CalcExpectedOutput(_cudaClient, l);
+                NeuralNetwork.CalcExpectedOutput(_cudaClient, l);
 
                 NeuralNetwork.CudaGradientWeightStream.Synchronize();
                 NeuralNetwork.CudaGradientBiasStream.Synchronize();
@@ -217,7 +211,9 @@ namespace NeuralNetwork.API.Network
             }
 
             for (var l = 0; l < Config.NetworkConfig.HiddenLayersNeuronCount.Length + 1; l++)
+            {
                 NeuralNetwork.ApplyGradient(_cudaClient, l);
+            }
 
             NeuralNetwork.CudaApplyGradientStream.Synchronize();
         }

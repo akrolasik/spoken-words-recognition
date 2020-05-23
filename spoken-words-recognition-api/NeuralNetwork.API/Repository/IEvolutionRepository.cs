@@ -13,5 +13,6 @@ namespace NeuralNetwork.API.Repository
         void StartEvolution(Guid id);
         void StopRunningEvolution();
         EvolutionStatistics GetNeuralNetworkStatistics(Guid id);
+        void VerifyEvolution(Guid id);
     }
 }

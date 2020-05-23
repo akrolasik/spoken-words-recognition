@@ -1,9 +1,9 @@
 <div class="row" (wheel)="onMouseWheel($event); false">
-    <div class="col-11" echarts [options]="selected" style="height: 400px; margin: 20px 0 0 0;"></div>
-    <div class="col-1" style="height: 400px; margin: 20px 0 0 0; font-size: 14px; line-height: 15px;">
+    <div class="col-10" echarts [options]="selected()" style="height: 400px; margin: 20px 0 0 0;"></div>
+    <div class="col-2" style="height: 400px; margin: 20px 0 0 0; font-size: 14px; line-height: 15px;">
         <div *ngFor="let item of options" 
-            [style.fontWeight]="selected == item ? 'bold' : 'normal'" 
-            [style.color]="selected == item ? '#3366ff' : '#bbbbbb'">
+            [style.fontWeight]="selected() == item ? 'bold' : 'normal'" 
+            [style.color]="selected() == item ? '#3366ff' : '#bbbbbb'">
             {{item.name}}
         </div>
     </div>

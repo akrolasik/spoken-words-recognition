@@ -11,23 +11,24 @@
                                 [disabled]="wordOccurence.word == state.wordOccurence.word" 
                                 [id]="wordOccurence.word" 
                                 class="spacing" nbButton hero 
-                                [status]="wordOccurence.validated==null?'info':(wordOccurence.validated?'success':'danger')" 
+                                [status]="wordOccurence.validated==null?'info':(wordOccurence.validated?(wordOccurence.notGoodForTraining?'warning':'success'):'danger')" 
                                 (click)="setCurrentWord(wordOccurence.word.value)">{{wordOccurence.word.value}}</button>
                         </div>
                     </div>
                 </div>
                 <div [style.display]="data.dataLeftToValidate == 0 ? 'none' : 'inherit'" style="width: 100%; text-align: center; padding-top: 20px;">
                     <div *ngIf="state.wordOccurence != null">
-                        <button style="margin: 2.5px; width: 110px;" nbButton hero status="info" (click)="move(-1)" [disabled]="state.wordOccurence.word == state.firstWord()" ><nb-icon icon="arrow-back-outline"></nb-icon>prev</button>
-                        <button style="margin: 2.5px; width: 150px;" nbButton hero status="danger" (click)="decline()"><nb-icon icon="close-outline"></nb-icon>decline</button>
-                        <button style="margin: 2.5px; width: 110px;" nbButton hero status="info" (click)="state.play()"><nb-icon icon="arrow-right-outline"></nb-icon>play</button>
-                        <button style="margin: 2.5px; width: 150px;" nbButton hero status="success" (click)="accept()"><nb-icon icon="checkmark-outline"></nb-icon>accept</button>
-                        <button style="margin: 2.5px; width: 110px;" nbButton hero status="info" (click)="move(1)" [disabled]="state.wordOccurence.word == state.lastWord()"><nb-icon icon="arrow-forward-outline"></nb-icon>next</button>
+                        <button style="margin: 2.5px;" nbButton hero status="info" (click)="move(-1)" [disabled]="state.wordOccurence.word == state.firstWord()" ><nb-icon icon="arrow-back-outline"></nb-icon>prev</button>
+                        <button style="margin: 2.5px;" nbButton hero status="danger" (click)="delete()"><nb-icon icon="trash-2-outline"></nb-icon>delete</button>
+                        <button style="margin: 2.5px;" nbButton hero status="warning" (click)="decline()"><nb-icon icon="close-outline"></nb-icon>decline</button>
+                        <button style="margin: 2.5px;" nbButton hero status="info" (click)="state.play()"><nb-icon icon="arrow-right-outline"></nb-icon>play</button>
+                        <button style="margin: 2.5px;" nbButton hero status="success" (click)="accept()"><nb-icon icon="checkmark-outline"></nb-icon>accept</button>
+                        <button style="margin: 2.5px;" nbButton hero status="info" (click)="move(1)" [disabled]="state.wordOccurence.word == state.lastWord()"><nb-icon icon="arrow-forward-outline"></nb-icon>next</button>
                         <button style="margin-top: 20px; width: 300px; border: none; background-color: white;" nbButton outline status="danger" [nbPopover]="popover" (click)="removeFocus()"><nb-icon icon="close-outline"></nb-icon>Delete recording</button>
                         <ng-template #popover>
                             <div style="padding: 20px;">
                                 <div style="margin-bottom: 10px; font-weight: bold; text-align: center;">Are you sure?</div>
-                                <button nbButton status="danger" style="width: 100px; margin-top: 5px;" (click)="delete()">Yes</button>
+                                <button nbButton status="danger" style="width: 100px; margin-top: 5px;" (click)="deleteRecording()">Yes</button>
                             </div>
                         </ng-template>
                     </div>

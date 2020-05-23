@@ -47,6 +47,12 @@ export class EvolutionService {
     })}).toPromise();
   }
 
+  public verifyEvolution(id: string): Promise<any> {
+    return this.http.post(`${this.baseUrl}/verify/${id}`, { headers: new HttpHeaders({
+      'Content-Type': 'application/json',
+    })}).toPromise();
+  }
+
   public stopEvolution(): Promise<any> {
     return this.http.delete(`${this.baseUrl}/stop`, { headers: new HttpHeaders({
       'Content-Type': 'application/json',

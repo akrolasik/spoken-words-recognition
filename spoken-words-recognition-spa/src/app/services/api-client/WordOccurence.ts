@@ -6,4 +6,5 @@ export class WordOccurence {
   start?: number;
   end?: number;
   validated?: boolean;
+  notGoodForTraining: boolean;
 }

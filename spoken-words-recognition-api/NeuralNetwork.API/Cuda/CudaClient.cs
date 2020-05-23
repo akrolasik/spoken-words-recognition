@@ -26,28 +26,35 @@ namespace NeuralNetwork.API.Cuda
         private readonly CudaContext _ctx;
 
 
-        public CudaClient(EvolutionConfig config, DataProvider dataProvider)
+        public CudaClient(EvolutionConfig config, DataProvider dataProvider, bool verification = false)
         {
             _ctx = new CudaContext(true);
 
+            var resultParamCount = config.NetworkConfig.HiddenLayersNeuronCount.First() * dataProvider.TrainingData.Count;
+            var resultParamCountBlocksPerGrid = (resultParamCount + ThreadsPerBlock - 1) / ThreadsPerBlock;
+
             _calcNeuronValues = new Kernel(_ctx, "calcNeuronValues");
+            _calcNeuronValues.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
+            _calcNeuronValues.Cuda.GridDimensions = new dim3(resultParamCountBlocksPerGrid, 1, 1);
+
+            Input = new ParallelMatrices(1, dataProvider.TrainingData.Count, dataProvider.TrainingData.Select(x => x.Input()).ToList());
+            ExpectedOutput = new ParallelMatrices(1, dataProvider.TrainingData.Count, dataProvider.TrainingData.Select(x => x.ExpectedOutput).ToList());
+
+            if(verification) return;
+
             _calcExpectedDif = new Kernel(_ctx, "calcExpectedDif");
             _calcGradientWeight = new Kernel(_ctx, "calcGradientWeight");
             _calcGradientBias = new Kernel(_ctx, "calcGradientBias");
             _calcExpectedOutput = new Kernel(_ctx, "calcExpectedOutput");
             _applyGradient = new Kernel(_ctx, "applyGradient");
 
-            _calcNeuronValues.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcExpectedDif.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcGradientWeight.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcGradientBias.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _calcExpectedOutput.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
             _applyGradient.Cuda.BlockDimensions = new dim3(ThreadsPerBlock, 1, 1);
+            
 
-            var resultParamCount = config.NetworkConfig.HiddenLayersNeuronCount.First() * dataProvider.TrainingData.Count;
-            var resultParamCountBlocksPerGrid = (resultParamCount + ThreadsPerBlock - 1) / ThreadsPerBlock;
-
-            _calcNeuronValues.Cuda.GridDimensions = new dim3(resultParamCountBlocksPerGrid, 1, 1);
             _calcExpectedDif.Cuda.GridDimensions = new dim3(resultParamCountBlocksPerGrid, 1, 1);
             _calcGradientBias.Cuda.GridDimensions = new dim3(resultParamCountBlocksPerGrid, 1, 1);
             _calcExpectedOutput.Cuda.GridDimensions = new dim3(resultParamCountBlocksPerGrid, 1, 1);
@@ -57,9 +64,6 @@ namespace NeuralNetwork.API.Cuda
 
             _calcGradientWeight.Cuda.GridDimensions = new dim3(networkParamCountBlocksPerGrid, 1, 1);
             _applyGradient.Cuda.GridDimensions = new dim3(networkParamCountBlocksPerGrid, 1, 1);
-
-            Input = new ParallelMatrices(1, dataProvider.TrainingData.Count, dataProvider.TrainingData.Select(x => x.Input()).ToList());
-            ExpectedOutput = new ParallelMatrices(1, dataProvider.TrainingData.Count, dataProvider.TrainingData.Select(x => x.ExpectedOutput).ToList());
         }
 
         public void CalcNeuronValues(CudaStream stream, NeuronValueParams @params)
@@ -129,7 +133,6 @@ namespace NeuralNetwork.API.Cuda
         {
             Input.Dispose();
             ExpectedOutput.Dispose();
-
             _ctx.Dispose();
         }
     }

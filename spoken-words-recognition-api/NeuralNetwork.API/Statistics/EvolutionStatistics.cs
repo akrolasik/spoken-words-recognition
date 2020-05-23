@@ -10,6 +10,7 @@ namespace NeuralNetwork.API.Statistics
     {
         public int IterationCount { get; set; }
         public float TotalComputingTimeInSeconds { get; set; }
+        public OutputStatistics Verification{ get; set; } = new OutputStatistics();
         public OutputStatistics Output{ get; set; } = new OutputStatistics();
         public List<Aggregation> CostHistory { get; set; } = new List<Aggregation>();
 

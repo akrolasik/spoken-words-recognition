@@ -35,16 +35,23 @@ namespace NeuralNetwork.API.Repository
 
         public void AddEvolution(EvolutionConfig evolutionConfig)
         {
+            evolutionConfig.State = EvolutionState.Saving;
+
             _evolutions.Add(evolutionConfig);
 
             SaveEvolutions();
 
-            _ = Task.Run(() => new Evolution(evolutionConfig)).ContinueWith(async evolution => await evolution.Result.Save());
+            _ = Task.Run(() => new Evolution(evolutionConfig)).ContinueWith(async evolution =>
+                {
+                    await evolution.Result.Save();
+                    evolutionConfig.State = EvolutionState.Idle;
+                });
         }
 
         public void DeleteEvolution(Guid id)
         {
-            StopRunningEvolution();
+            if (_currentEvolution != null)
+                throw new Exception("You must first stop the running evolution");
 
             var config = _evolutions.First(x => x.Id == id);
             Evolution.Remove(config);
@@ -60,12 +67,24 @@ namespace NeuralNetwork.API.Repository
 
         public void StartEvolution(Guid id)
         {
-            StopRunningEvolution();
+            if (_currentEvolution != null)
+                throw new Exception("You must first stop the running evolution");
 
             var config = _evolutions.First(x => x.Id == id);
             _currentEvolution = new Evolution(config);
             
             Task.Run(_currentEvolution.StartCalculation);
+        }
+
+        public void VerifyEvolution(Guid id)
+        {
+            if (_currentEvolution != null)
+                throw new Exception("You must first stop the running evolution");
+
+            var config = _evolutions.First(x => x.Id == id);
+            _currentEvolution = new Evolution(config);
+
+            Task.Run(_currentEvolution.Verify);
         }
 
         public void StopRunningEvolution()
@@ -74,7 +93,7 @@ namespace NeuralNetwork.API.Repository
             {
                 _currentEvolution.CancelCalculation();
 
-                while (!_currentEvolution.Config.IsRunning)
+                while (_currentEvolution.Config.State != EvolutionState.Idle)
                 {
                     Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
@@ -94,6 +113,8 @@ namespace NeuralNetwork.API.Repository
                 return null;
             }
         }
+
+        
 
         private void SaveEvolutions()
         {

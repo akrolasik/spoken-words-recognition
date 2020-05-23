@@ -9,5 +9,6 @@ export class Recording {
   modification: Modification;
   word: string;
   chunksCount: number;
+  notGoodForTraining: boolean;
   zipEntry: ZipEntry;
 }

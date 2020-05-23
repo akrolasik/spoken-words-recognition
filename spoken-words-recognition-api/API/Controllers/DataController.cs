@@ -148,7 +148,8 @@ namespace API.Controllers
                 Accent = rawRecording.Accent,
                 Modification = rawRecording.Modification,
                 Localization = rawRecording.Localization,
-                Word = x.Word.InWords
+                Word = x.Word.InWords,
+                NotGoodForTraining = x.NotGoodForTraining
             }).ToList();
 
             var fileName = $"{rawRecordingId}.weba";

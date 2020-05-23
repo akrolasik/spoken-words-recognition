@@ -59,23 +59,25 @@ namespace NeuralNetwork.API.Network
         public void Dispose()
         {
             _calcNeuronValuesStream.Dispose();
-            _calcExpectedDifferenceStream.Dispose();
-            _calcGradientWeightStream.Dispose();
-            _calcGradientBiasStream.Dispose();
-            _calcExpectedOutputStream.Dispose();
-            _applyGradientStream.Dispose();
+            _calcExpectedDifferenceStream?.Dispose();
+            _calcGradientWeightStream?.Dispose();
+            _calcGradientBiasStream?.Dispose();
+            _calcExpectedOutputStream?.Dispose();
+            _applyGradientStream?.Dispose();
 
             Layers.ForEach(x => x.Dispose());
-            Gradient.ForEach(x => x.Dispose());
             Output.ForEach(x => x.Dispose());
-            _temp.ForEach(x => x.Dispose());
-            _difference.ForEach(x => x.Dispose());
+            Gradient?.ForEach(x => x.Dispose());
+            _temp?.ForEach(x => x.Dispose());
+            _difference?.ForEach(x => x.Dispose());
         }
 
-        public void PrepareCuda(CudaClient _cudaClient, DataProvider dataProvider)
+        public void PrepareCuda(DataProvider dataProvider, bool verification = false)
         {
             Output = Layers.Select(layer => new ParallelMatrices(1, dataProvider.TrainingData.Count, 
                 (y, x) => Matrix<float>.Build.Dense(layer.Weight.RowCount, 1))).ToList();
+
+            if (verification) return;
 
             Gradient = Layers.Select(layer => new MatrixFunction
             {
@@ -187,6 +189,8 @@ namespace NeuralNetwork.API.Network
 
         public void CalcExpectedOutput(CudaClient _cudaClient, int layer)
         {
+            if (layer == 0) return;
+                
             var input = layer == 0 ? _cudaClient.Input : Output[layer - 1];
             var weightRowCount = Layers[layer].WeightRowCount;
             var expectedRowCount = Layers[layer - 1].WeightRowCount;

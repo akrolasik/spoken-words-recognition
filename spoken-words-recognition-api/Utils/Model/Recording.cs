@@ -14,10 +14,11 @@ namespace Utils.Model
         public Modification Modification { get; set; }
         public string Word { get; set; }
         public int ChunksCount { get; set; }
+        public bool NotGoodForTraining { get; set; }
 
         public string ToText()
         {
-            return $"{Id}\t{SpeakerId}\t{Word}\t{Accent}\t{Localization}\t{Modification}\t{ChunksCount}";
+            return $"{Id}\t{SpeakerId}\t{Word}\t{Accent}\t{Localization}\t{Modification}\t{ChunksCount}\t{NotGoodForTraining}";
         }
 
         public ITextFile FromText(string text)
@@ -33,6 +34,7 @@ namespace Utils.Model
                 Localization = temp[4],
                 Modification = (Modification)Enum.Parse(typeof(Modification), temp[5]),
                 ChunksCount = int.Parse(temp[6]),
+                NotGoodForTraining = bool.Parse(temp[7]),
             };
         }
     }

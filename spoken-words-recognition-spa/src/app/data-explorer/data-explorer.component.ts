@@ -15,7 +15,6 @@ export class DataExplorerComponent {
   visibleRecordings: Recording[];
   pageToLoadNext: number = 0;
   pageSize: number = 30;
-  treshold: number = 300;
 
   words: string[];
   accents: string[];
@@ -37,9 +36,7 @@ export class DataExplorerComponent {
   }
 
   loadNext(pageToLoad: number) {
-    if(pageToLoad < 0 || 
-      pageToLoad > this.filteredRecordings.length / this.pageSize ||
-      this.loadedRecordings.length >= this.treshold) return;
+    if(pageToLoad < 0 || pageToLoad > this.filteredRecordings.length / this.pageSize) return;
 
     let start = pageToLoad * this.pageSize;
     let end = Math.min((pageToLoad + 1) * this.pageSize, this.filteredRecordings.length);

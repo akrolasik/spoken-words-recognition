@@ -55,7 +55,8 @@ export class SoundRecognition {
 
         const occurence: WordOccurence = {
           word: this.currentWord,
-          milliseconds: occurenceTime
+          milliseconds: occurenceTime,
+          notGoodForTraining: false
         };
 
         this.wordOccurrences.push(occurence);

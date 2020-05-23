@@ -98,7 +98,6 @@ export class DataService {
 
   load(file: any) {
     this.loadedFileName = file.name;
-    console.log(this.loadedFileName);
     this.getEntries(file).subscribe(result => {
       this.files = result as Array<ZipEntry>;
       let index = this.files.find(x => x.filename == "index.tsv")
@@ -146,6 +145,7 @@ export class DataService {
       localization: properties[4],
       modification: properties[5] as Modification,
       chunksCount: Number.parseInt(properties[6]),
+      notGoodForTraining: properties[7] == "True",
       zipEntry: this.files.find(x => x.filename == `${properties[0]}.mp3`),
     };
   }

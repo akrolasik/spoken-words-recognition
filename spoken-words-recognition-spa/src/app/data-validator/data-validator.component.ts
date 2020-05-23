@@ -72,6 +72,14 @@ export class DataValidatorComponent implements OnInit, AfterViewInit {
   }
 
   decline() {
+    this.state.wordOccurence.validated = true;
+    this.state.wordOccurence.notGoodForTraining = true;
+    if (!this.checkIfAllAreVerified()) {
+      this.move(1);
+    }
+  }
+
+  delete() {
     this.state.wordOccurence.validated = false;
     if (!this.checkIfAllAreVerified()) {
       this.move(1);
@@ -87,11 +95,11 @@ export class DataValidatorComponent implements OnInit, AfterViewInit {
   }
 
   async uploadProcessedData() {
-    this.apiClient.putWords(this.state.rawRecording.id, this.state.rawRecording.words.filter(x => x.validated != null));
+    this.apiClient.putWords(this.state.rawRecording.id, this.state.rawRecording.words.filter(x => x.validated));
     this.next();
   }
 
-  delete() {
+  deleteRecording() {
     this.apiClient.deleteRawRecording(this.state.rawRecording.id);
     this.next();
   }

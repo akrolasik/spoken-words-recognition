@@ -3,7 +3,7 @@ import { RandomNamesService } from 'src/app/services/random-names.service';
 import { Guid } from 'guid-typescript';
 import { DataService } from 'src/app/services/data.service';
 import { Recording } from 'src/app/services/api-client/Recording';
-import { EvolutionConfig } from '../evolution-tile/evolution-tile.component';
+import { EvolutionConfig, EvolutionState } from '../evolution-tile/evolution-tile.component';
 import { EvolutionService } from 'src/app/services/evolution.service';
 
 @Component({
@@ -52,7 +52,7 @@ export class AddNewEvolutionComponent implements OnInit {
     this.evolution = {
       id: Guid.create().toString(),
       name: this.randomNamesService.getRandomName(),
-      isRunning: false,
+      state: EvolutionState.Idle,
       networkConfig: {
         inputResolution: { width: 50, height: 170 },
         hiddenLayersNeuronCount: [400, 100],
@@ -122,7 +122,6 @@ export class AddNewEvolutionComponent implements OnInit {
 
     this.evolution.networkConfig.outputCount = this.evolution.inputConfig.wordsIncluded.length;
 
-    console.log(this.evolution);
     await this.evolutionService.addEvolution(this.evolution);
 
     this.init();

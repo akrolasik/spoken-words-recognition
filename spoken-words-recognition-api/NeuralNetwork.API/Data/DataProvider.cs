@@ -24,7 +24,7 @@ namespace NeuralNetwork.API.Data
         private readonly Random _random = new Random();
         private readonly HttpClient _httpClient;
 
-        public DataProvider(EvolutionConfig evolutionConfig)
+        public DataProvider(EvolutionConfig evolutionConfig, bool verification = false)
         {
             _evolutionConfig = evolutionConfig;
             _httpClient = new HttpClient();
@@ -42,7 +42,7 @@ namespace NeuralNetwork.API.Data
             var recordings = index.Select(x => (Recording)new Recording().FromText(x)).ToList();
             var words = recordings.Select(x => x.Word).Distinct().ToList();
 
-            TrainingData = recordings.Select(recording =>
+            TrainingData = recordings.Where(x => x.NotGoodForTraining == verification).Select(recording =>
             {
                 var outputIndex = words.IndexOf(recording.Word);
                 return new TrainingData(this)

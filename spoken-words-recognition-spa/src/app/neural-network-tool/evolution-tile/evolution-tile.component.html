@@ -1,14 +1,18 @@
 <nb-card #background id="background">
     <nb-card-header>
-        {{evolution.name}}
+        <span (click)="expanded = !expanded" style="cursor: pointer;">
+            {{evolution.name}}
+        </span>
         <nb-toggle 
             status="info" 
             style="transform: translateY(10px) scale(0.8); margin: -15px 0 -5px 10px;"
-            [checked]="evolution.isRunning" 
+            [checked]="evolution.state == 'Running'" 
+            [disabled]="evolution.state == 'Saving' || evolution.state == 'Loading'"
             (change)="onStateChange($event)">
         </nb-toggle>
         <span *ngIf="statistics != null" style="margin-left: 10px;">
-            <span style="font-weight: normal; font-size: 15px;">Total time: <b>{{statistics.totalComputingTimeInSeconds | time}}</b></span>
+            <span style="font-weight: normal; font-size: 15px;">State: <b>{{evolution.state}}</b></span>
+            <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Total time: <b>{{statistics.totalComputingTimeInSeconds | time}}</b></span>
             <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iteration: <b>{{statistics.iterationCount}}</b></span>
             <span style="font-weight: normal; font-size: 15px; margin-left: 10px;">Iter./s: <b>{{statistics.iterationCount / statistics.totalComputingTimeInSeconds | number: '1.0-0'}}</b></span>
         </span>
@@ -19,86 +23,86 @@
                 outline 
                 style="background-color: transparent; border: none;" 
                 [nbPopover]="popover"
+                [disabled]="evolution.state != 'Idle'"
                 nbPopoverPlacement="right">
                 delete
             </button>
         </div>
     </nb-card-header>
-    <nb-card-body style="padding: 0; overflow: hidden;">
+    <nb-card-body *ngIf="expanded" style="padding: 0; overflow: hidden;">
         <div class="row">
             <nb-tabset style="width: 100%;" fullWidth>
-                <nb-tab tabTitle="Cost">
-                    <div echarts [options]="costChartOptions" style="height: 450px; margin: 20px 0 0 0;"></div>
+                <nb-tab tabTitle="Training">
+                    <div echarts [options]="costChartOptions" style="height: 425px; margin: 20px 0 0 0;"></div>
                 </nb-tab>
                 <nb-tab tabTitle="Output">
-                    <!-- <app-chart-with-scroll [options]="outputChartOptions"></app-chart-with-scroll> -->
+                    <app-chart-with-scroll [options]="outputChartOptions"></app-chart-with-scroll>
                 </nb-tab>
-                <nb-tab tabTitle="Network">
+                <nb-tab tabTitle="Analysis">
+                    <button nbButton status="success" (click)="varify()">Verify</button>
+                    <app-chart-with-scroll [options]="verificationChartOptions"></app-chart-with-scroll>
                 </nb-tab>
-                <nb-tab tabTitle="Testing">
+                <nb-tab tabTitle="Live testing">
+                    <div echarts [options]="costChartOptions" style="height: 425px; margin: 20px 0 0 0;"></div>
                 </nb-tab>
                 <nb-tab tabTitle="Parameters">
-                    <div style="height: 450px; margin: 20px;">
-                        <!-- <div class="row">
-                            <div class="col-6"> -->
-                                <span>
-                                    <b>Details</b>
-                                </span>
-                                <div style="height: 10px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Name: <b>{{evolution.name}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Id: <b>{{evolution.id}}</b>
-                                </span>
-                                <div style="height: 20px"></div>
-                                <span>
-                                    <b>Input</b>
-                                </span>
-                                <div style="height: 10px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Package name: <b>{{evolution.inputConfig.packageFileName}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;" [nbTooltip]="words()" nbTooltipPlacement="right">
-                                    Words included in training: <b>{{evolution.inputConfig.wordsIncluded.length}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;" [nbTooltip]="accents()" nbTooltipPlacement="right">
-                                    Accents included in training: <b>{{evolution.inputConfig.accentsIncluded.length}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;" [nbTooltip]="modifications()" nbTooltipPlacement="right">
-                                    Modifications included in training: <b>{{evolution.inputConfig.modificationsIncluded.length}}</b>
-                                </span>
-                                <div style="height: 20px"></div>
-                                <span>
-                                    <b>Network</b>
-                                </span>
-                                <div style="height: 10px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Input resolution: <b>{{evolution.networkConfig.inputResolution.width}}x{{evolution.networkConfig.inputResolution.height}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Input count: <b>{{evolution.networkConfig.inputResolution.width*evolution.networkConfig.inputResolution.height}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Number of hidden layers: <b>{{evolution.networkConfig.hiddenLayersNeuronCount.length}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Number of neuron in hidden layers: <b>{{evolution.networkConfig.hiddenLayersNeuronCount}}</b>
-                                </span>
-                                <div style="height: 5px"></div>
-                                <span style="margin: 0 0 0 10px;">
-                                    Output count: <b>{{evolution.networkConfig.outputCount}}</b>
-                                </span>
-                                <div style="height: 20px"></div>
-                            <!-- </div>
-                        </div> -->
+                    <div style="height: 405px; margin: 20px;">
+                        <span>
+                            <b>Details</b>
+                        </span>
+                        <div style="height: 10px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Name: <b>{{evolution.name}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Id: <b>{{evolution.id}}</b>
+                        </span>
+                        <div style="height: 20px"></div>
+                        <span>
+                            <b>Input</b>
+                        </span>
+                        <div style="height: 10px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Package name: <b>{{evolution.inputConfig.packageFileName}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;" [nbTooltip]="words()" nbTooltipPlacement="right">
+                            Words included in training: <b>{{evolution.inputConfig.wordsIncluded.length}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;" [nbTooltip]="accents()" nbTooltipPlacement="right">
+                            Accents included in training: <b>{{evolution.inputConfig.accentsIncluded.length}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;" [nbTooltip]="modifications()" nbTooltipPlacement="right">
+                            Modifications included in training: <b>{{evolution.inputConfig.modificationsIncluded.length}}</b>
+                        </span>
+                        <div style="height: 20px"></div>
+                        <span>
+                            <b>Network</b>
+                        </span>
+                        <div style="height: 10px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Input resolution: <b>{{evolution.networkConfig.inputResolution.width}}x{{evolution.networkConfig.inputResolution.height}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Input count: <b>{{evolution.networkConfig.inputResolution.width*evolution.networkConfig.inputResolution.height}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Number of hidden layers: <b>{{evolution.networkConfig.hiddenLayersNeuronCount.length}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Number of neuron in hidden layers: <b>{{evolution.networkConfig.hiddenLayersNeuronCount}}</b>
+                        </span>
+                        <div style="height: 5px"></div>
+                        <span style="margin: 0 0 0 10px;">
+                            Output count: <b>{{evolution.networkConfig.outputCount}}</b>
+                        </span>
+                        <div style="height: 20px"></div>
                     </div>
                 </nb-tab>>
             </nb-tabset>

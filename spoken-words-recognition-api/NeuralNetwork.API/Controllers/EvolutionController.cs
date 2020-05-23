@@ -47,6 +47,14 @@ namespace NeuralNetwork.API.Controllers
             return Ok();
         }
 
+        [HttpPost]
+        [Route("verify/{id}")]
+        public IActionResult VerifyEvolution([FromRoute] Guid id)
+        {
+            _evolutionRepository.VerifyEvolution(id);
+            return Ok();
+        }
+
         [HttpGet]
         [Route("statistics/{id}")]
         public ActionResult<EvolutionStatistics> GetEvolutionStatistics([FromRoute] Guid id)
